@@ -1,0 +1,275 @@
+task,modality_group,feature,source,declared_dtype,shape,files,frames_or_rows,count_source,fps,bytes,bytes_human,details
+429_erase_board_lerobot,pose,start_pose,info,float32,[6],,31342,declared_expected,24,,,
+429_erase_board_lerobot,pose,end_pose,info,float32,[6],,31342,declared_expected,24,,,
+429_erase_board_lerobot,action,action,info,float32,[10],,31342,declared_expected,24,,,
+429_erase_board_lerobot,state,observation.state,info,float32,[10],,31342,declared_expected,24,,,
+429_erase_board_lerobot,state,observation.state_phone,info,float32,[6],,31342,declared_expected,24,,,
+429_erase_board_lerobot,vision_video,observation.images.wrist,info,video,"[480, 640, 3]",,31342,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 480, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 640}"
+429_erase_board_lerobot,vision_video,observation.images.phone,info,video,"[480, 640, 3]",,31342,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 480, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 640}"
+429_erase_board_lerobot,depth_image,observation.images.phone_depth,info,image,"[480, 640, 1]",,31342,declared_expected,24,,,
+429_erase_board_lerobot,tactile_video,observation.tactiles.left,info,video,"[224, 224, 3]",,31342,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 224, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 224}"
+429_erase_board_lerobot,tactile_video,observation.tactiles.right,info,video,"[224, 224, 3]",,31342,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 224, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 224}"
+429_erase_board_lerobot,force,observation.forces.left,info,float32,[1],,31342,declared_expected,24,,,
+429_erase_board_lerobot,force,observation.forces.right,info,float32,[1],,31342,declared_expected,24,,,
+429_erase_board_lerobot,index,timestamp,info,float32,[1],,31342,declared_expected,24,,,
+429_erase_board_lerobot,index,frame_index,info,int64,[1],,31342,declared_expected,24,,,
+429_erase_board_lerobot,index,episode_index,info,int64,[1],,31342,declared_expected,24,,,
+429_erase_board_lerobot,index,index,info,int64,[1],,31342,declared_expected,24,,,
+429_erase_board_lerobot,index,task_index,info,int64,[1],,31342,declared_expected,24,,,
+429_erase_board_lerobot,action,action,data_parquet,float32,[10],5,31342,parquet_rows,24,1179684,1.1 MiB,"{""uncompressed_bytes"": 1270811}"
+429_erase_board_lerobot,pose,end_pose,data_parquet,float32,[6],5,31342,parquet_rows,24,31326,30.6 KiB,"{""uncompressed_bytes"": 116178}"
+429_erase_board_lerobot,index,episode_index,data_parquet,int64,[1],5,31342,parquet_rows,24,21204,20.7 KiB,"{""uncompressed_bytes"": 20344}"
+429_erase_board_lerobot,index,frame_index,data_parquet,int64,[1],5,31342,parquet_rows,24,179734,175.5 KiB,"{""uncompressed_bytes"": 301955}"
+429_erase_board_lerobot,index,index,data_parquet,int64,[1],5,31342,parquet_rows,24,180398,176.2 KiB,"{""uncompressed_bytes"": 301955}"
+429_erase_board_lerobot,force,observation.forces.left,data_parquet,float32,[1],5,31342,parquet_rows,24,16904,16.5 KiB,"{""uncompressed_bytes"": 16044}"
+429_erase_board_lerobot,force,observation.forces.right,data_parquet,float32,[1],5,31342,parquet_rows,24,77865,76.0 KiB,"{""uncompressed_bytes"": 76397}"
+429_erase_board_lerobot,depth_image,observation.images.phone_depth,data_parquet,image,"[480, 640, 1]",5,31342,parquet_rows,24,492034540,469.2 MiB,"{""uncompressed_bytes"": 492482498}"
+429_erase_board_lerobot,state,observation.state,data_parquet,float32,[10],5,31342,parquet_rows,24,1175059,1.1 MiB,"{""uncompressed_bytes"": 1266270}"
+429_erase_board_lerobot,state,observation.state_phone,data_parquet,float32,[6],5,31342,parquet_rows,24,1010526,986.8 KiB,"{""uncompressed_bytes"": 1029790}"
+429_erase_board_lerobot,pose,start_pose,data_parquet,float32,[6],5,31342,parquet_rows,24,31326,30.6 KiB,"{""uncompressed_bytes"": 116178}"
+429_erase_board_lerobot,index,task_index,data_parquet,int64,[1],5,31342,parquet_rows,24,21204,20.7 KiB,"{""uncompressed_bytes"": 20344}"
+429_erase_board_lerobot,index,timestamp,data_parquet,float32,[1],5,31342,parquet_rows,24,174952,170.9 KiB,"{""uncompressed_bytes"": 173147}"
+429_erase_board_lerobot,vision_video,observation.images.phone,video_files,video,"[480, 640, 3]",4,31342,ffprobe_count_frames,"{""24.0"": 4}",774863839,739.0 MiB,"{""duration_s"": 1305.916667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 4}, ""fps_values"": {""24.0"": 4}, ""height_values"": {""480"": 4}, ""pix_fmt_values"": {""yuv420p"": 4}, ""width_values"": {""640"": 4}}}"
+429_erase_board_lerobot,vision_video,observation.images.wrist,video_files,video,"[480, 640, 3]",3,31342,ffprobe_count_frames,"{""24.0"": 3}",547925576,522.5 MiB,"{""duration_s"": 1305.916667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 3}, ""fps_values"": {""24.0"": 3}, ""height_values"": {""480"": 3}, ""pix_fmt_values"": {""yuv420p"": 3}, ""width_values"": {""640"": 3}}}"
+429_erase_board_lerobot,tactile_video,observation.tactiles.left,video_files,video,"[224, 224, 3]",1,31342,ffprobe_count_frames,"{""24.0"": 1}",90992708,86.8 MiB,"{""duration_s"": 1305.916667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 1}, ""fps_values"": {""24.0"": 1}, ""height_values"": {""224"": 1}, ""pix_fmt_values"": {""yuv420p"": 1}, ""width_values"": {""224"": 1}}}"
+429_erase_board_lerobot,tactile_video,observation.tactiles.right,video_files,video,"[224, 224, 3]",1,31342,ffprobe_count_frames,"{""24.0"": 1}",76793672,73.2 MiB,"{""duration_s"": 1305.916667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 1}, ""fps_values"": {""24.0"": 1}, ""height_values"": {""224"": 1}, ""pix_fmt_values"": {""yuv420p"": 1}, ""width_values"": {""224"": 1}}}"
+430_clamp_seal_lerobot,pose,start_pose,info,float32,[6],,34746,declared_expected,24,,,
+430_clamp_seal_lerobot,pose,end_pose,info,float32,[6],,34746,declared_expected,24,,,
+430_clamp_seal_lerobot,action,action,info,float32,[10],,34746,declared_expected,24,,,
+430_clamp_seal_lerobot,state,observation.state,info,float32,[10],,34746,declared_expected,24,,,
+430_clamp_seal_lerobot,state,observation.state_phone,info,float32,[6],,34746,declared_expected,24,,,
+430_clamp_seal_lerobot,vision_video,observation.images.wrist,info,video,"[480, 640, 3]",,34746,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 480, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 640}"
+430_clamp_seal_lerobot,vision_video,observation.images.phone,info,video,"[480, 640, 3]",,34746,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 480, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 640}"
+430_clamp_seal_lerobot,depth_image,observation.images.phone_depth,info,image,"[480, 640, 1]",,34746,declared_expected,24,,,
+430_clamp_seal_lerobot,tactile_video,observation.tactiles.left,info,video,"[224, 224, 3]",,34746,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 224, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 224}"
+430_clamp_seal_lerobot,tactile_video,observation.tactiles.right,info,video,"[224, 224, 3]",,34746,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 224, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 224}"
+430_clamp_seal_lerobot,force,observation.forces.left,info,float32,[1],,34746,declared_expected,24,,,
+430_clamp_seal_lerobot,force,observation.forces.right,info,float32,[1],,34746,declared_expected,24,,,
+430_clamp_seal_lerobot,index,timestamp,info,float32,[1],,34746,declared_expected,24,,,
+430_clamp_seal_lerobot,index,frame_index,info,int64,[1],,34746,declared_expected,24,,,
+430_clamp_seal_lerobot,index,episode_index,info,int64,[1],,34746,declared_expected,24,,,
+430_clamp_seal_lerobot,index,index,info,int64,[1],,34746,declared_expected,24,,,
+430_clamp_seal_lerobot,index,task_index,info,int64,[1],,34746,declared_expected,24,,,
+430_clamp_seal_lerobot,action,action,data_parquet,float32,[10],5,34746,parquet_rows,24,1322431,1.3 MiB,"{""uncompressed_bytes"": 1418481}"
+430_clamp_seal_lerobot,pose,end_pose,data_parquet,float32,[6],5,34746,parquet_rows,24,33921,33.1 KiB,"{""uncompressed_bytes"": 127927}"
+430_clamp_seal_lerobot,index,episode_index,data_parquet,int64,[1],5,34746,parquet_rows,24,22743,22.2 KiB,"{""uncompressed_bytes"": 21823}"
+430_clamp_seal_lerobot,index,frame_index,data_parquet,int64,[1],5,34746,parquet_rows,24,198298,193.7 KiB,"{""uncompressed_bytes"": 333863}"
+430_clamp_seal_lerobot,index,index,data_parquet,int64,[1],5,34746,parquet_rows,24,199024,194.4 KiB,"{""uncompressed_bytes"": 333863}"
+430_clamp_seal_lerobot,force,observation.forces.left,data_parquet,float32,[1],5,34746,parquet_rows,24,18143,17.7 KiB,"{""uncompressed_bytes"": 17223}"
+430_clamp_seal_lerobot,force,observation.forces.right,data_parquet,float32,[1],5,34746,parquet_rows,24,69836,68.2 KiB,"{""uncompressed_bytes"": 68376}"
+430_clamp_seal_lerobot,depth_image,observation.images.phone_depth,data_parquet,image,"[480, 640, 1]",5,34746,parquet_rows,24,517424148,493.5 MiB,"{""uncompressed_bytes"": 517937272}"
+430_clamp_seal_lerobot,state,observation.state,data_parquet,float32,[10],5,34746,parquet_rows,24,1317447,1.3 MiB,"{""uncompressed_bytes"": 1413520}"
+430_clamp_seal_lerobot,state,observation.state_phone,data_parquet,float32,[6],5,34746,parquet_rows,24,1118242,1.1 MiB,"{""uncompressed_bytes"": 1139490}"
+430_clamp_seal_lerobot,pose,start_pose,data_parquet,float32,[6],5,34746,parquet_rows,24,33921,33.1 KiB,"{""uncompressed_bytes"": 127927}"
+430_clamp_seal_lerobot,index,task_index,data_parquet,int64,[1],5,34746,parquet_rows,24,22743,22.2 KiB,"{""uncompressed_bytes"": 21823}"
+430_clamp_seal_lerobot,index,timestamp,data_parquet,float32,[1],5,34746,parquet_rows,24,193209,188.7 KiB,"{""uncompressed_bytes"": 191199}"
+430_clamp_seal_lerobot,vision_video,observation.images.phone,video_files,video,"[480, 640, 3]",5,34746,ffprobe_count_frames,"{""24.0"": 5}",955179040,910.9 MiB,"{""duration_s"": 1447.75, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 5}, ""fps_values"": {""24.0"": 5}, ""height_values"": {""480"": 5}, ""pix_fmt_values"": {""yuv420p"": 5}, ""width_values"": {""640"": 5}}}"
+430_clamp_seal_lerobot,vision_video,observation.images.wrist,video_files,video,"[480, 640, 3]",5,34746,ffprobe_count_frames,"{""24.0"": 5}",1020039084,972.8 MiB,"{""duration_s"": 1447.7499990000001, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 5}, ""fps_values"": {""24.0"": 5}, ""height_values"": {""480"": 5}, ""pix_fmt_values"": {""yuv420p"": 5}, ""width_values"": {""640"": 5}}}"
+430_clamp_seal_lerobot,tactile_video,observation.tactiles.left,video_files,video,"[224, 224, 3]",1,34746,ffprobe_count_frames,"{""24.0"": 1}",100568262,95.9 MiB,"{""duration_s"": 1447.75, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 1}, ""fps_values"": {""24.0"": 1}, ""height_values"": {""224"": 1}, ""pix_fmt_values"": {""yuv420p"": 1}, ""width_values"": {""224"": 1}}}"
+430_clamp_seal_lerobot,tactile_video,observation.tactiles.right,video_files,video,"[224, 224, 3]",1,34746,ffprobe_count_frames,"{""24.0"": 1}",81794566,78.0 MiB,"{""duration_s"": 1447.75, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 1}, ""fps_values"": {""24.0"": 1}, ""height_values"": {""224"": 1}, ""pix_fmt_values"": {""yuv420p"": 1}, ""width_values"": {""224"": 1}}}"
+430_clamp_seal_lerobot,latent,observation.images.wrist,latent_files,pth,,230,34746,filename_span_end_minus_start,24,1234735614,1.1 GiB,"{""episode_segments"": 230, ""inspected_files"": 1, ""inspected_numel"": 3203072, ""tensor_samples"": [{""dtype"": ""torch.bfloat16"", ""file"": ""episode_000000_0_286.pth"", ""name"": ""latent"", ""numel"": 1105920, ""shape"": [23040, 48], ""type"": ""Tensor""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""latent_num_frames"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""latent_height"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""latent_width"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""video_num_frames"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""video_height"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""video_width"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": ""torch.bfloat16"", ""file"": ""episode_000000_0_286.pth"", ""name"": ""text_emb"", ""numel"": 2097152, ""shape"": [512, 4096], ""type"": ""Tensor""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""text"", ""numel"": null, ""shape"": null, ""type"": ""str""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""frame_ids[0]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""frame_ids[1]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""frame_ids[2]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""frame_ids[3]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""frame_ids[4]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""frame_ids[5]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""frame_ids[6]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""frame_ids[7]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""frame_ids[8]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""frame_ids[9]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_286.pth"", ""name"": ""frame_ids[10]"", ""numel"": null, ""shape"": null, ""type"": ""int""}]}"
+430_towel_hanging_lerobot,pose,start_pose,info,float32,[6],,33310,declared_expected,24,,,
+430_towel_hanging_lerobot,pose,end_pose,info,float32,[6],,33310,declared_expected,24,,,
+430_towel_hanging_lerobot,action,action,info,float32,[10],,33310,declared_expected,24,,,
+430_towel_hanging_lerobot,state,observation.state,info,float32,[10],,33310,declared_expected,24,,,
+430_towel_hanging_lerobot,state,observation.state_phone,info,float32,[6],,33310,declared_expected,24,,,
+430_towel_hanging_lerobot,vision_video,observation.images.wrist,info,video,"[480, 640, 3]",,33310,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 480, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 640}"
+430_towel_hanging_lerobot,vision_video,observation.images.phone,info,video,"[480, 640, 3]",,33310,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 480, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 640}"
+430_towel_hanging_lerobot,depth_image,observation.images.phone_depth,info,image,"[480, 640, 1]",,33310,declared_expected,24,,,
+430_towel_hanging_lerobot,tactile_video,observation.tactiles.left,info,video,"[224, 224, 3]",,33310,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 224, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 224}"
+430_towel_hanging_lerobot,tactile_video,observation.tactiles.right,info,video,"[224, 224, 3]",,33310,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 224, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 224}"
+430_towel_hanging_lerobot,force,observation.forces.left,info,float32,[1],,33310,declared_expected,24,,,
+430_towel_hanging_lerobot,force,observation.forces.right,info,float32,[1],,33310,declared_expected,24,,,
+430_towel_hanging_lerobot,index,timestamp,info,float32,[1],,33310,declared_expected,24,,,
+430_towel_hanging_lerobot,index,frame_index,info,int64,[1],,33310,declared_expected,24,,,
+430_towel_hanging_lerobot,index,episode_index,info,int64,[1],,33310,declared_expected,24,,,
+430_towel_hanging_lerobot,index,index,info,int64,[1],,33310,declared_expected,24,,,
+430_towel_hanging_lerobot,index,task_index,info,int64,[1],,33310,declared_expected,24,,,
+430_towel_hanging_lerobot,action,action,data_parquet,float32,[10],5,33310,parquet_rows,24,1278815,1.2 MiB,"{""uncompressed_bytes"": 1375079}"
+430_towel_hanging_lerobot,pose,end_pose,data_parquet,float32,[6],5,33310,parquet_rows,24,30911,30.2 KiB,"{""uncompressed_bytes"": 121363}"
+430_towel_hanging_lerobot,index,episode_index,data_parquet,int64,[1],5,33310,parquet_rows,24,20466,20.0 KiB,"{""uncompressed_bytes"": 19638}"
+430_towel_hanging_lerobot,index,frame_index,data_parquet,int64,[1],5,33310,parquet_rows,24,188900,184.5 KiB,"{""uncompressed_bytes"": 319058}"
+430_towel_hanging_lerobot,index,index,data_parquet,int64,[1],5,33310,parquet_rows,24,189600,185.2 KiB,"{""uncompressed_bytes"": 319058}"
+430_towel_hanging_lerobot,force,observation.forces.left,data_parquet,float32,[1],5,33310,parquet_rows,24,16326,15.9 KiB,"{""uncompressed_bytes"": 15498}"
+430_towel_hanging_lerobot,force,observation.forces.right,data_parquet,float32,[1],5,33310,parquet_rows,24,58888,57.5 KiB,"{""uncompressed_bytes"": 57583}"
+430_towel_hanging_lerobot,depth_image,observation.images.phone_depth,data_parquet,image,"[480, 640, 1]",5,33310,parquet_rows,24,416364891,397.1 MiB,"{""uncompressed_bytes"": 416852083}"
+430_towel_hanging_lerobot,state,observation.state,data_parquet,float32,[10],5,33310,parquet_rows,24,1273934,1.2 MiB,"{""uncompressed_bytes"": 1370161}"
+430_towel_hanging_lerobot,state,observation.state_phone,data_parquet,float32,[6],5,33310,parquet_rows,24,1073874,1.0 MiB,"{""uncompressed_bytes"": 1094494}"
+430_towel_hanging_lerobot,pose,start_pose,data_parquet,float32,[6],5,33310,parquet_rows,24,30911,30.2 KiB,"{""uncompressed_bytes"": 121363}"
+430_towel_hanging_lerobot,index,task_index,data_parquet,int64,[1],5,33310,parquet_rows,24,20466,20.0 KiB,"{""uncompressed_bytes"": 19638}"
+430_towel_hanging_lerobot,index,timestamp,data_parquet,float32,[1],5,33310,parquet_rows,24,184325,180.0 KiB,"{""uncompressed_bytes"": 182504}"
+430_towel_hanging_lerobot,vision_video,observation.images.phone,video_files,video,"[480, 640, 3]",5,33310,ffprobe_count_frames,"{""24.0"": 5}",967531618,922.7 MiB,"{""duration_s"": 1387.916666, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 5}, ""fps_values"": {""24.0"": 5}, ""height_values"": {""480"": 5}, ""pix_fmt_values"": {""yuv420p"": 5}, ""width_values"": {""640"": 5}}}"
+430_towel_hanging_lerobot,vision_video,observation.images.wrist,video_files,video,"[480, 640, 3]",5,33310,ffprobe_count_frames,"{""24.0"": 5}",871414496,831.0 MiB,"{""duration_s"": 1387.916666, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 5}, ""fps_values"": {""24.0"": 5}, ""height_values"": {""480"": 5}, ""pix_fmt_values"": {""yuv420p"": 5}, ""width_values"": {""640"": 5}}}"
+430_towel_hanging_lerobot,tactile_video,observation.tactiles.left,video_files,video,"[224, 224, 3]",1,33310,ffprobe_count_frames,"{""24.0"": 1}",94346567,90.0 MiB,"{""duration_s"": 1387.916667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 1}, ""fps_values"": {""24.0"": 1}, ""height_values"": {""224"": 1}, ""pix_fmt_values"": {""yuv420p"": 1}, ""width_values"": {""224"": 1}}}"
+430_towel_hanging_lerobot,tactile_video,observation.tactiles.right,video_files,video,"[224, 224, 3]",1,33310,ffprobe_count_frames,"{""24.0"": 1}",80240543,76.5 MiB,"{""duration_s"": 1387.916667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 1}, ""fps_values"": {""24.0"": 1}, ""height_values"": {""224"": 1}, ""pix_fmt_values"": {""yuv420p"": 1}, ""width_values"": {""224"": 1}}}"
+430_towel_hanging_lerobot,latent,observation.images.wrist,latent_files,pth,,207,33310,filename_span_end_minus_start,24,1127001227,1.0 GiB,"{""episode_segments"": 207, ""inspected_files"": 1, ""inspected_numel"": 3034112, ""tensor_samples"": [{""dtype"": ""torch.bfloat16"", ""file"": ""episode_000000_0_244.pth"", ""name"": ""latent"", ""numel"": 936960, ""shape"": [19520, 48], ""type"": ""Tensor""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""latent_num_frames"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""latent_height"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""latent_width"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""video_num_frames"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""video_height"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""video_width"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": ""torch.bfloat16"", ""file"": ""episode_000000_0_244.pth"", ""name"": ""text_emb"", ""numel"": 2097152, ""shape"": [512, 4096], ""type"": ""Tensor""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""text"", ""numel"": null, ""shape"": null, ""type"": ""str""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""frame_ids[0]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""frame_ids[1]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""frame_ids[2]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""frame_ids[3]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""frame_ids[4]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""frame_ids[5]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""frame_ids[6]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""frame_ids[7]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""frame_ids[8]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""frame_ids[9]"", ""numel"": null, ""shape"": null, ""type"": ""int""}, {""dtype"": null, ""file"": ""episode_000000_0_244.pth"", ""name"": ""frame_ids[10]"", ""numel"": null, ""shape"": null, ""type"": ""int""}]}"
+501_bread_moving_lerobot,pose,start_pose,info,float32,[6],,20518,declared_expected,24,,,
+501_bread_moving_lerobot,pose,end_pose,info,float32,[6],,20518,declared_expected,24,,,
+501_bread_moving_lerobot,action,action,info,float32,[10],,20518,declared_expected,24,,,
+501_bread_moving_lerobot,state,observation.state,info,float32,[10],,20518,declared_expected,24,,,
+501_bread_moving_lerobot,state,observation.state_phone,info,float32,[6],,20518,declared_expected,24,,,
+501_bread_moving_lerobot,vision_video,observation.images.wrist,info,video,"[480, 640, 3]",,20518,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 480, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 640}"
+501_bread_moving_lerobot,vision_video,observation.images.phone,info,video,"[480, 640, 3]",,20518,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 480, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 640}"
+501_bread_moving_lerobot,depth_image,observation.images.phone_depth,info,image,"[480, 640, 1]",,20518,declared_expected,24,,,
+501_bread_moving_lerobot,tactile_video,observation.tactiles.left,info,video,"[224, 224, 3]",,20518,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 224, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 224}"
+501_bread_moving_lerobot,tactile_video,observation.tactiles.right,info,video,"[224, 224, 3]",,20518,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 224, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 224}"
+501_bread_moving_lerobot,force,observation.forces.left,info,float32,[1],,20518,declared_expected,24,,,
+501_bread_moving_lerobot,force,observation.forces.right,info,float32,[1],,20518,declared_expected,24,,,
+501_bread_moving_lerobot,index,timestamp,info,float32,[1],,20518,declared_expected,24,,,
+501_bread_moving_lerobot,index,frame_index,info,int64,[1],,20518,declared_expected,24,,,
+501_bread_moving_lerobot,index,episode_index,info,int64,[1],,20518,declared_expected,24,,,
+501_bread_moving_lerobot,index,index,info,int64,[1],,20518,declared_expected,24,,,
+501_bread_moving_lerobot,index,task_index,info,int64,[1],,20518,declared_expected,24,,,
+501_bread_moving_lerobot,action,action,data_parquet,float32,[10],3,20518,parquet_rows,24,788847,770.4 KiB,"{""uncompressed_bytes"": 840063}"
+501_bread_moving_lerobot,pose,end_pose,data_parquet,float32,[6],3,20518,parquet_rows,24,27944,27.3 KiB,"{""uncompressed_bytes"": 81887}"
+501_bread_moving_lerobot,index,episode_index,data_parquet,int64,[1],3,20518,parquet_rows,24,19653,19.2 KiB,"{""uncompressed_bytes"": 18857}"
+501_bread_moving_lerobot,index,frame_index,data_parquet,int64,[1],3,20518,parquet_rows,24,121594,118.7 KiB,"{""uncompressed_bytes"": 200857}"
+501_bread_moving_lerobot,index,index,data_parquet,int64,[1],3,20518,parquet_rows,24,122144,119.3 KiB,"{""uncompressed_bytes"": 200857}"
+501_bread_moving_lerobot,force,observation.forces.left,data_parquet,float32,[1],3,20518,parquet_rows,24,40898,39.9 KiB,"{""uncompressed_bytes"": 39867}"
+501_bread_moving_lerobot,force,observation.forces.right,data_parquet,float32,[1],3,20518,parquet_rows,24,39386,38.5 KiB,"{""uncompressed_bytes"": 38392}"
+501_bread_moving_lerobot,depth_image,observation.images.phone_depth,data_parquet,image,"[480, 640, 1]",3,20518,parquet_rows,24,299304589,285.4 MiB,"{""uncompressed_bytes"": 299601303}"
+501_bread_moving_lerobot,state,observation.state,data_parquet,float32,[10],3,20518,parquet_rows,24,784562,766.2 KiB,"{""uncompressed_bytes"": 835878}"
+501_bread_moving_lerobot,state,observation.state_phone,data_parquet,float32,[6],3,20518,parquet_rows,24,661019,645.5 KiB,"{""uncompressed_bytes"": 672440}"
+501_bread_moving_lerobot,pose,start_pose,data_parquet,float32,[6],3,20518,parquet_rows,24,27944,27.3 KiB,"{""uncompressed_bytes"": 81887}"
+501_bread_moving_lerobot,index,task_index,data_parquet,int64,[1],3,20518,parquet_rows,24,19653,19.2 KiB,"{""uncompressed_bytes"": 18857}"
+501_bread_moving_lerobot,index,timestamp,data_parquet,float32,[1],3,20518,parquet_rows,24,117158,114.4 KiB,"{""uncompressed_bytes"": 115601}"
+501_bread_moving_lerobot,vision_video,observation.images.phone,video_files,video,"[480, 640, 3]",3,20518,ffprobe_count_frames,"{""24.0"": 3}",564760754,538.6 MiB,"{""duration_s"": 854.916667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 3}, ""fps_values"": {""24.0"": 3}, ""height_values"": {""480"": 3}, ""pix_fmt_values"": {""yuv420p"": 3}, ""width_values"": {""640"": 3}}}"
+501_bread_moving_lerobot,vision_video,observation.images.wrist,video_files,video,"[480, 640, 3]",3,20518,ffprobe_count_frames,"{""24.0"": 3}",425155967,405.5 MiB,"{""duration_s"": 854.916667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 3}, ""fps_values"": {""24.0"": 3}, ""height_values"": {""480"": 3}, ""pix_fmt_values"": {""yuv420p"": 3}, ""width_values"": {""640"": 3}}}"
+501_bread_moving_lerobot,tactile_video,observation.tactiles.left,video_files,video,"[224, 224, 3]",1,20518,ffprobe_count_frames,"{""24.0"": 1}",60577183,57.8 MiB,"{""duration_s"": 854.916667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 1}, ""fps_values"": {""24.0"": 1}, ""height_values"": {""224"": 1}, ""pix_fmt_values"": {""yuv420p"": 1}, ""width_values"": {""224"": 1}}}"
+501_bread_moving_lerobot,tactile_video,observation.tactiles.right,video_files,video,"[224, 224, 3]",1,20518,ffprobe_count_frames,"{""24.0"": 1}",51505131,49.1 MiB,"{""duration_s"": 854.916667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 1}, ""fps_values"": {""24.0"": 1}, ""height_values"": {""224"": 1}, ""pix_fmt_values"": {""yuv420p"": 1}, ""width_values"": {""224"": 1}}}"
+505_screw_lerobot,pose,start_pose,info,float32,[6],,44155,declared_expected,24,,,
+505_screw_lerobot,pose,end_pose,info,float32,[6],,44155,declared_expected,24,,,
+505_screw_lerobot,action,action,info,float32,[10],,44155,declared_expected,24,,,
+505_screw_lerobot,state,observation.state,info,float32,[10],,44155,declared_expected,24,,,
+505_screw_lerobot,state,observation.state_phone,info,float32,[6],,44155,declared_expected,24,,,
+505_screw_lerobot,vision_video,observation.images.wrist,info,video,"[480, 640, 3]",,44155,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 480, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 640}"
+505_screw_lerobot,vision_video,observation.images.phone,info,video,"[480, 640, 3]",,44155,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 480, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 640}"
+505_screw_lerobot,depth_image,observation.images.phone_depth,info,image,"[480, 640, 1]",,44155,declared_expected,24,,,
+505_screw_lerobot,tactile_video,observation.tactiles.left,info,video,"[224, 224, 3]",,44155,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 224, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 224}"
+505_screw_lerobot,tactile_video,observation.tactiles.right,info,video,"[224, 224, 3]",,44155,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 224, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 224}"
+505_screw_lerobot,force,observation.forces.left,info,float32,[1],,44155,declared_expected,24,,,
+505_screw_lerobot,force,observation.forces.right,info,float32,[1],,44155,declared_expected,24,,,
+505_screw_lerobot,index,timestamp,info,float32,[1],,44155,declared_expected,24,,,
+505_screw_lerobot,index,frame_index,info,int64,[1],,44155,declared_expected,24,,,
+505_screw_lerobot,index,episode_index,info,int64,[1],,44155,declared_expected,24,,,
+505_screw_lerobot,index,index,info,int64,[1],,44155,declared_expected,24,,,
+505_screw_lerobot,index,task_index,info,int64,[1],,44155,declared_expected,24,,,
+505_screw_lerobot,action,action,data_parquet,float32,[10],6,44155,parquet_rows,24,1672677,1.6 MiB,"{""uncompressed_bytes"": 1811078}"
+505_screw_lerobot,pose,end_pose,data_parquet,float32,[6],6,44155,parquet_rows,24,31810,31.1 KiB,"{""uncompressed_bytes"": 153826}"
+505_screw_lerobot,index,episode_index,data_parquet,int64,[1],6,44155,parquet_rows,24,20031,19.6 KiB,"{""uncompressed_bytes"": 19219}"
+505_screw_lerobot,index,frame_index,data_parquet,int64,[1],6,44155,parquet_rows,24,244661,238.9 KiB,"{""uncompressed_bytes"": 418156}"
+505_screw_lerobot,index,index,data_parquet,int64,[1],6,44155,parquet_rows,24,245378,239.6 KiB,"{""uncompressed_bytes"": 418156}"
+505_screw_lerobot,force,observation.forces.left,data_parquet,float32,[1],6,44155,parquet_rows,24,89185,87.1 KiB,"{""uncompressed_bytes"": 87697}"
+505_screw_lerobot,force,observation.forces.right,data_parquet,float32,[1],6,44155,parquet_rows,24,118605,115.8 KiB,"{""uncompressed_bytes"": 116930}"
+505_screw_lerobot,depth_image,observation.images.phone_depth,data_parquet,image,"[480, 640, 1]",6,44155,parquet_rows,24,603987965,576.0 MiB,"{""uncompressed_bytes"": 604636110}"
+505_screw_lerobot,state,observation.state,data_parquet,float32,[10],6,44155,parquet_rows,24,1670115,1.6 MiB,"{""uncompressed_bytes"": 1808731}"
+505_screw_lerobot,state,observation.state_phone,data_parquet,float32,[6],6,44155,parquet_rows,24,1437077,1.4 MiB,"{""uncompressed_bytes"": 1465694}"
+505_screw_lerobot,pose,start_pose,data_parquet,float32,[6],6,44155,parquet_rows,24,31810,31.1 KiB,"{""uncompressed_bytes"": 153826}"
+505_screw_lerobot,index,task_index,data_parquet,int64,[1],6,44155,parquet_rows,24,20031,19.6 KiB,"{""uncompressed_bytes"": 19219}"
+505_screw_lerobot,index,timestamp,data_parquet,float32,[1],6,44155,parquet_rows,24,240124,234.5 KiB,"{""uncompressed_bytes"": 238288}"
+505_screw_lerobot,vision_video,observation.images.phone,video_files,video,"[480, 640, 3]",6,44155,ffprobe_count_frames,"{""24.0"": 6}",1212834248,1.1 GiB,"{""duration_s"": 1839.791667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 6}, ""fps_values"": {""24.0"": 6}, ""height_values"": {""480"": 6}, ""pix_fmt_values"": {""yuv420p"": 6}, ""width_values"": {""640"": 6}}}"
+505_screw_lerobot,vision_video,observation.images.wrist,video_files,video,"[480, 640, 3]",6,44155,ffprobe_count_frames,"{""24.0"": 6}",1135744230,1.1 GiB,"{""duration_s"": 1839.791667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 6}, ""fps_values"": {""24.0"": 6}, ""height_values"": {""480"": 6}, ""pix_fmt_values"": {""yuv420p"": 6}, ""width_values"": {""640"": 6}}}"
+505_screw_lerobot,tactile_video,observation.tactiles.left,video_files,video,"[224, 224, 3]",1,44155,ffprobe_count_frames,"{""24.0"": 1}",129030027,123.1 MiB,"{""duration_s"": 1839.791667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 1}, ""fps_values"": {""24.0"": 1}, ""height_values"": {""224"": 1}, ""pix_fmt_values"": {""yuv420p"": 1}, ""width_values"": {""224"": 1}}}"
+505_screw_lerobot,tactile_video,observation.tactiles.right,video_files,video,"[224, 224, 3]",1,44155,ffprobe_count_frames,"{""24.0"": 1}",104427215,99.6 MiB,"{""duration_s"": 1839.791667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 1}, ""fps_values"": {""24.0"": 1}, ""height_values"": {""224"": 1}, ""pix_fmt_values"": {""yuv420p"": 1}, ""width_values"": {""224"": 1}}}"
+505_stiring_lerobot,pose,start_pose,info,float32,[6],,27380,declared_expected,24,,,
+505_stiring_lerobot,pose,end_pose,info,float32,[6],,27380,declared_expected,24,,,
+505_stiring_lerobot,action,action,info,float32,[10],,27380,declared_expected,24,,,
+505_stiring_lerobot,state,observation.state,info,float32,[10],,27380,declared_expected,24,,,
+505_stiring_lerobot,state,observation.state_phone,info,float32,[6],,27380,declared_expected,24,,,
+505_stiring_lerobot,vision_video,observation.images.wrist,info,video,"[480, 640, 3]",,27380,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 480, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 640}"
+505_stiring_lerobot,vision_video,observation.images.phone,info,video,"[480, 640, 3]",,27380,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 480, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 640}"
+505_stiring_lerobot,depth_image,observation.images.phone_depth,info,image,"[480, 640, 1]",,27380,declared_expected,24,,,
+505_stiring_lerobot,tactile_video,observation.tactiles.left,info,video,"[224, 224, 3]",,27380,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 224, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 224}"
+505_stiring_lerobot,tactile_video,observation.tactiles.right,info,video,"[224, 224, 3]",,27380,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 224, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 224}"
+505_stiring_lerobot,force,observation.forces.left,info,float32,[1],,27380,declared_expected,24,,,
+505_stiring_lerobot,force,observation.forces.right,info,float32,[1],,27380,declared_expected,24,,,
+505_stiring_lerobot,index,timestamp,info,float32,[1],,27380,declared_expected,24,,,
+505_stiring_lerobot,index,frame_index,info,int64,[1],,27380,declared_expected,24,,,
+505_stiring_lerobot,index,episode_index,info,int64,[1],,27380,declared_expected,24,,,
+505_stiring_lerobot,index,index,info,int64,[1],,27380,declared_expected,24,,,
+505_stiring_lerobot,index,task_index,info,int64,[1],,27380,declared_expected,24,,,
+505_stiring_lerobot,action,action,data_parquet,float32,[10],5,27380,parquet_rows,24,1044153,1019.7 KiB,"{""uncompressed_bytes"": 1133548}"
+505_stiring_lerobot,pose,end_pose,data_parquet,float32,[6],5,27380,parquet_rows,24,22337,21.8 KiB,"{""uncompressed_bytes"": 97452}"
+505_stiring_lerobot,index,episode_index,data_parquet,int64,[1],5,27380,parquet_rows,24,14508,14.2 KiB,"{""uncompressed_bytes"": 13920}"
+505_stiring_lerobot,index,frame_index,data_parquet,int64,[1],5,27380,parquet_rows,24,153570,150.0 KiB,"{""uncompressed_bytes"": 260942}"
+505_stiring_lerobot,index,index,data_parquet,int64,[1],5,27380,parquet_rows,24,154070,150.5 KiB,"{""uncompressed_bytes"": 260944}"
+505_stiring_lerobot,force,observation.forces.left,data_parquet,float32,[1],5,27380,parquet_rows,24,52773,51.5 KiB,"{""uncompressed_bytes"": 51748}"
+505_stiring_lerobot,force,observation.forces.right,data_parquet,float32,[1],5,27380,parquet_rows,24,113086,110.4 KiB,"{""uncompressed_bytes"": 111818}"
+505_stiring_lerobot,depth_image,observation.images.phone_depth,data_parquet,image,"[480, 640, 1]",5,27380,parquet_rows,24,440206640,419.8 MiB,"{""uncompressed_bytes"": 440594071}"
+505_stiring_lerobot,state,observation.state,data_parquet,float32,[10],5,27380,parquet_rows,24,1041626,1017.2 KiB,"{""uncompressed_bytes"": 1131201}"
+505_stiring_lerobot,state,observation.state_phone,data_parquet,float32,[6],5,27380,parquet_rows,24,890830,870.0 KiB,"{""uncompressed_bytes"": 908334}"
+505_stiring_lerobot,pose,start_pose,data_parquet,float32,[6],5,27380,parquet_rows,24,22337,21.8 KiB,"{""uncompressed_bytes"": 97452}"
+505_stiring_lerobot,index,task_index,data_parquet,int64,[1],5,27380,parquet_rows,24,14508,14.2 KiB,"{""uncompressed_bytes"": 13920}"
+505_stiring_lerobot,index,timestamp,data_parquet,float32,[1],5,27380,parquet_rows,24,150337,146.8 KiB,"{""uncompressed_bytes"": 149064}"
+505_stiring_lerobot,vision_video,observation.images.phone,video_files,video,"[480, 640, 3]",4,27380,ffprobe_count_frames,"{""24.0"": 4}",748928202,714.2 MiB,"{""duration_s"": 1140.833334, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 4}, ""fps_values"": {""24.0"": 4}, ""height_values"": {""480"": 4}, ""pix_fmt_values"": {""yuv420p"": 4}, ""width_values"": {""640"": 4}}}"
+505_stiring_lerobot,vision_video,observation.images.wrist,video_files,video,"[480, 640, 3]",4,27380,ffprobe_count_frames,"{""24.0"": 4}",716245592,683.1 MiB,"{""duration_s"": 1140.833334, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 4}, ""fps_values"": {""24.0"": 4}, ""height_values"": {""480"": 4}, ""pix_fmt_values"": {""yuv420p"": 4}, ""width_values"": {""640"": 4}}}"
+505_stiring_lerobot,tactile_video,observation.tactiles.left,video_files,video,"[224, 224, 3]",1,27380,ffprobe_count_frames,"{""24.0"": 1}",74142186,70.7 MiB,"{""duration_s"": 1140.833333, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 1}, ""fps_values"": {""24.0"": 1}, ""height_values"": {""224"": 1}, ""pix_fmt_values"": {""yuv420p"": 1}, ""width_values"": {""224"": 1}}}"
+505_stiring_lerobot,tactile_video,observation.tactiles.right,video_files,video,"[224, 224, 3]",1,27380,ffprobe_count_frames,"{""24.0"": 1}",63905509,60.9 MiB,"{""duration_s"": 1140.833333, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 1}, ""fps_values"": {""24.0"": 1}, ""height_values"": {""224"": 1}, ""pix_fmt_values"": {""yuv420p"": 1}, ""width_values"": {""224"": 1}}}"
+506_open_bottle_lerobot,pose,start_pose,info,float32,[6],,29023,declared_expected,24,,,
+506_open_bottle_lerobot,pose,end_pose,info,float32,[6],,29023,declared_expected,24,,,
+506_open_bottle_lerobot,action,action,info,float32,[10],,29023,declared_expected,24,,,
+506_open_bottle_lerobot,state,observation.state,info,float32,[10],,29023,declared_expected,24,,,
+506_open_bottle_lerobot,state,observation.state_phone,info,float32,[6],,29023,declared_expected,24,,,
+506_open_bottle_lerobot,vision_video,observation.images.wrist,info,video,"[480, 640, 3]",,29023,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 480, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 640}"
+506_open_bottle_lerobot,vision_video,observation.images.phone,info,video,"[480, 640, 3]",,29023,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 480, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 640}"
+506_open_bottle_lerobot,depth_image,observation.images.phone_depth,info,image,"[480, 640, 1]",,29023,declared_expected,24,,,
+506_open_bottle_lerobot,tactile_video,observation.tactiles.left,info,video,"[224, 224, 3]",,29023,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 224, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 224}"
+506_open_bottle_lerobot,tactile_video,observation.tactiles.right,info,video,"[224, 224, 3]",,29023,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 224, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 224}"
+506_open_bottle_lerobot,force,observation.forces.left,info,float32,[1],,29023,declared_expected,24,,,
+506_open_bottle_lerobot,force,observation.forces.right,info,float32,[1],,29023,declared_expected,24,,,
+506_open_bottle_lerobot,index,timestamp,info,float32,[1],,29023,declared_expected,24,,,
+506_open_bottle_lerobot,index,frame_index,info,int64,[1],,29023,declared_expected,24,,,
+506_open_bottle_lerobot,index,episode_index,info,int64,[1],,29023,declared_expected,24,,,
+506_open_bottle_lerobot,index,index,info,int64,[1],,29023,declared_expected,24,,,
+506_open_bottle_lerobot,index,task_index,info,int64,[1],,29023,declared_expected,24,,,
+506_open_bottle_lerobot,action,action,data_parquet,float32,[10],5,29023,parquet_rows,24,1108771,1.1 MiB,"{""uncompressed_bytes"": 1197583}"
+506_open_bottle_lerobot,pose,end_pose,data_parquet,float32,[6],5,29023,parquet_rows,24,24449,23.9 KiB,"{""uncompressed_bytes"": 103915}"
+506_open_bottle_lerobot,index,episode_index,data_parquet,int64,[1],5,29023,parquet_rows,24,15999,15.6 KiB,"{""uncompressed_bytes"": 15351}"
+506_open_bottle_lerobot,index,frame_index,data_parquet,int64,[1],5,29023,parquet_rows,24,163472,159.6 KiB,"{""uncompressed_bytes"": 277192}"
+506_open_bottle_lerobot,index,index,data_parquet,int64,[1],5,29023,parquet_rows,24,164035,160.2 KiB,"{""uncompressed_bytes"": 277192}"
+506_open_bottle_lerobot,force,observation.forces.left,data_parquet,float32,[1],5,29023,parquet_rows,24,12829,12.5 KiB,"{""uncompressed_bytes"": 12181}"
+506_open_bottle_lerobot,force,observation.forces.right,data_parquet,float32,[1],5,29023,parquet_rows,24,23542,23.0 KiB,"{""uncompressed_bytes"": 22812}"
+506_open_bottle_lerobot,depth_image,observation.images.phone_depth,data_parquet,image,"[480, 640, 1]",5,29023,parquet_rows,24,469964008,448.2 MiB,"{""uncompressed_bytes"": 470377279}"
+506_open_bottle_lerobot,state,observation.state,data_parquet,float32,[10],5,29023,parquet_rows,24,1105871,1.1 MiB,"{""uncompressed_bytes"": 1194873}"
+506_open_bottle_lerobot,state,observation.state_phone,data_parquet,float32,[6],5,29023,parquet_rows,24,941709,919.6 KiB,"{""uncompressed_bytes"": 960095}"
+506_open_bottle_lerobot,pose,start_pose,data_parquet,float32,[6],5,29023,parquet_rows,24,24449,23.9 KiB,"{""uncompressed_bytes"": 103915}"
+506_open_bottle_lerobot,index,task_index,data_parquet,int64,[1],5,29023,parquet_rows,24,15999,15.6 KiB,"{""uncompressed_bytes"": 15351}"
+506_open_bottle_lerobot,index,timestamp,data_parquet,float32,[1],5,29023,parquet_rows,24,159923,156.2 KiB,"{""uncompressed_bytes"": 158508}"
+506_open_bottle_lerobot,vision_video,observation.images.phone,video_files,video,"[480, 640, 3]",4,29023,ffprobe_count_frames,"{""24.0"": 4}",785949625,749.5 MiB,"{""duration_s"": 1209.291666, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 4}, ""fps_values"": {""24.0"": 4}, ""height_values"": {""480"": 4}, ""pix_fmt_values"": {""yuv420p"": 4}, ""width_values"": {""640"": 4}}}"
+506_open_bottle_lerobot,vision_video,observation.images.wrist,video_files,video,"[480, 640, 3]",4,29023,ffprobe_count_frames,"{""24.0"": 4}",745710081,711.2 MiB,"{""duration_s"": 1209.291667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 4}, ""fps_values"": {""24.0"": 4}, ""height_values"": {""480"": 4}, ""pix_fmt_values"": {""yuv420p"": 4}, ""width_values"": {""640"": 4}}}"
+506_open_bottle_lerobot,tactile_video,observation.tactiles.left,video_files,video,"[224, 224, 3]",1,29023,ffprobe_count_frames,"{""24.0"": 1}",85868990,81.9 MiB,"{""duration_s"": 1209.291667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 1}, ""fps_values"": {""24.0"": 1}, ""height_values"": {""224"": 1}, ""pix_fmt_values"": {""yuv420p"": 1}, ""width_values"": {""224"": 1}}}"
+506_open_bottle_lerobot,tactile_video,observation.tactiles.right,video_files,video,"[224, 224, 3]",1,29023,ffprobe_count_frames,"{""24.0"": 1}",68633870,65.5 MiB,"{""duration_s"": 1209.291667, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 1}, ""fps_values"": {""24.0"": 1}, ""height_values"": {""224"": 1}, ""pix_fmt_values"": {""yuv420p"": 1}, ""width_values"": {""224"": 1}}}"
+506_peg_flowers_lerobot,pose,start_pose,info,float32,[6],,29591,declared_expected,24,,,
+506_peg_flowers_lerobot,pose,end_pose,info,float32,[6],,29591,declared_expected,24,,,
+506_peg_flowers_lerobot,action,action,info,float32,[10],,29591,declared_expected,24,,,
+506_peg_flowers_lerobot,state,observation.state,info,float32,[10],,29591,declared_expected,24,,,
+506_peg_flowers_lerobot,state,observation.state_phone,info,float32,[6],,29591,declared_expected,24,,,
+506_peg_flowers_lerobot,vision_video,observation.images.wrist,info,video,"[480, 640, 3]",,29591,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 480, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 640}"
+506_peg_flowers_lerobot,vision_video,observation.images.phone,info,video,"[480, 640, 3]",,29591,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 480, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 640}"
+506_peg_flowers_lerobot,depth_image,observation.images.phone_depth,info,image,"[480, 640, 1]",,29591,declared_expected,24,,,
+506_peg_flowers_lerobot,tactile_video,observation.tactiles.left,info,video,"[224, 224, 3]",,29591,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 224, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 224}"
+506_peg_flowers_lerobot,tactile_video,observation.tactiles.right,info,video,"[224, 224, 3]",,29591,declared_expected,24,,,"{""has_audio"": false, ""video.channels"": 3, ""video.codec"": ""h264"", ""video.fps"": 24, ""video.height"": 224, ""video.is_depth_map"": false, ""video.pix_fmt"": ""yuv420p"", ""video.width"": 224}"
+506_peg_flowers_lerobot,force,observation.forces.left,info,float32,[1],,29591,declared_expected,24,,,
+506_peg_flowers_lerobot,force,observation.forces.right,info,float32,[1],,29591,declared_expected,24,,,
+506_peg_flowers_lerobot,index,timestamp,info,float32,[1],,29591,declared_expected,24,,,
+506_peg_flowers_lerobot,index,frame_index,info,int64,[1],,29591,declared_expected,24,,,
+506_peg_flowers_lerobot,index,episode_index,info,int64,[1],,29591,declared_expected,24,,,
+506_peg_flowers_lerobot,index,index,info,int64,[1],,29591,declared_expected,24,,,
+506_peg_flowers_lerobot,index,task_index,info,int64,[1],,29591,declared_expected,24,,,
+506_peg_flowers_lerobot,action,action,data_parquet,float32,[10],5,29591,parquet_rows,24,1144277,1.1 MiB,"{""uncompressed_bytes"": 1220787}"
+506_peg_flowers_lerobot,pose,end_pose,data_parquet,float32,[6],5,29591,parquet_rows,24,30772,30.1 KiB,"{""uncompressed_bytes"": 110511}"
+506_peg_flowers_lerobot,index,episode_index,data_parquet,int64,[1],5,29591,parquet_rows,24,20949,20.5 KiB,"{""uncompressed_bytes"": 20101}"
+506_peg_flowers_lerobot,index,frame_index,data_parquet,int64,[1],5,29591,parquet_rows,24,170465,166.5 KiB,"{""uncompressed_bytes"": 285676}"
+506_peg_flowers_lerobot,index,index,data_parquet,int64,[1],5,29591,parquet_rows,24,171107,167.1 KiB,"{""uncompressed_bytes"": 285676}"
+506_peg_flowers_lerobot,force,observation.forces.left,data_parquet,float32,[1],5,29591,parquet_rows,24,52545,51.3 KiB,"{""uncompressed_bytes"": 51339}"
+506_peg_flowers_lerobot,force,observation.forces.right,data_parquet,float32,[1],5,29591,parquet_rows,24,81784,79.9 KiB,"{""uncompressed_bytes"": 80305}"
+506_peg_flowers_lerobot,depth_image,observation.images.phone_depth,data_parquet,image,"[480, 640, 1]",5,29591,parquet_rows,24,440016965,419.6 MiB,"{""uncompressed_bytes"": 440434109}"
+506_peg_flowers_lerobot,state,observation.state,data_parquet,float32,[10],5,29591,parquet_rows,24,1139374,1.1 MiB,"{""uncompressed_bytes"": 1215756}"
+506_peg_flowers_lerobot,state,observation.state_phone,data_parquet,float32,[6],5,29591,parquet_rows,24,949674,927.4 KiB,"{""uncompressed_bytes"": 967543}"
+506_peg_flowers_lerobot,pose,start_pose,data_parquet,float32,[6],5,29591,parquet_rows,24,30772,30.1 KiB,"{""uncompressed_bytes"": 110511}"
+506_peg_flowers_lerobot,index,task_index,data_parquet,int64,[1],5,29591,parquet_rows,24,20949,20.5 KiB,"{""uncompressed_bytes"": 20101}"
+506_peg_flowers_lerobot,index,timestamp,data_parquet,float32,[1],5,29591,parquet_rows,24,165744,161.9 KiB,"{""uncompressed_bytes"": 163919}"
+506_peg_flowers_lerobot,vision_video,observation.images.phone,video_files,video,"[480, 640, 3]",5,29591,ffprobe_count_frames,"{""24.0"": 5}",886437687,845.4 MiB,"{""duration_s"": 1232.958333, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 5}, ""fps_values"": {""24.0"": 5}, ""height_values"": {""480"": 5}, ""pix_fmt_values"": {""yuv420p"": 5}, ""width_values"": {""640"": 5}}}"
+506_peg_flowers_lerobot,vision_video,observation.images.wrist,video_files,video,"[480, 640, 3]",5,29591,ffprobe_count_frames,"{""24.0"": 5}",881733225,840.9 MiB,"{""duration_s"": 1232.958333, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 5}, ""fps_values"": {""24.0"": 5}, ""height_values"": {""480"": 5}, ""pix_fmt_values"": {""yuv420p"": 5}, ""width_values"": {""640"": 5}}}"
+506_peg_flowers_lerobot,tactile_video,observation.tactiles.left,video_files,video,"[224, 224, 3]",1,29591,ffprobe_count_frames,"{""24.0"": 1}",86171048,82.2 MiB,"{""duration_s"": 1232.958333, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 1}, ""fps_values"": {""24.0"": 1}, ""height_values"": {""224"": 1}, ""pix_fmt_values"": {""yuv420p"": 1}, ""width_values"": {""224"": 1}}}"
+506_peg_flowers_lerobot,tactile_video,observation.tactiles.right,video_files,video,"[224, 224, 3]",1,29591,ffprobe_count_frames,"{""24.0"": 1}",71191366,67.9 MiB,"{""duration_s"": 1232.958333, ""errors"": [], ""probe"": {""codec_values"": {""h264"": 1}, ""fps_values"": {""24.0"": 1}, ""height_values"": {""224"": 1}, ""pix_fmt_values"": {""yuv420p"": 1}, ""width_values"": {""224"": 1}}}"
