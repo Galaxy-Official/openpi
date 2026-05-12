@@ -154,9 +154,28 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     import torch  # noqa: PLC0415  (local so the script imports without torch installed)
 
+    from openpi.training.multimodal.paths import resolve_data_root  # noqa: PLC0415
+
     repo_ids = [args.repo_id] if args.repo_id else list(args.repo_ids)
     print(f"Loading {len(repo_ids)} task(s): {repo_ids}")
-    print(f"Data root: {args.data_root or '<default: $OPENPI_DATA_ROOT or ../openpi/Data>'}")
+
+    resolved_root = resolve_data_root(args.data_root)
+    print(f"Resolved data root: {resolved_root}  (exists={resolved_root.exists()})")
+    for rid in repo_ids:
+        task_dir = resolved_root / rid
+        meta = task_dir / "meta"
+        if not meta.exists():
+            print(f"  [WARN] {rid}: meta/ missing under {task_dir}")
+            continue
+        fmt_files = {
+            "tasks.jsonl (v2.x)": (meta / "tasks.jsonl").exists(),
+            "tasks.parquet (v3.0)": (meta / "tasks.parquet").exists(),
+            "episodes.jsonl (v2.x)": (meta / "episodes.jsonl").exists(),
+            "episodes/ (v3.0)": (meta / "episodes").is_dir(),
+            "info.json": (meta / "info.json").exists(),
+        }
+        flags = ", ".join(f"{k}={v}" for k, v in fmt_files.items())
+        print(f"  {rid}: {flags}")
 
     views = [
         build_dataset(
