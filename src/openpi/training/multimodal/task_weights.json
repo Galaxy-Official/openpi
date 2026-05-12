@@ -1,6 +1,6 @@
 {
   "alpha": 0.5,
-  "note": "task sampling weights, w_i = frames_i**alpha normalized; see Data/dataset_scan_report/task_summary.csv",
+  "note": "task sampling weights, w_i = frames_i**alpha normalized; frames sourced from dataset_scan_report/task_summary.csv under the data root (see $OPENPI_DATA_ROOT, default ../openpi/Data).",
   "tasks": {
     "429_erase_board_lerobot": {
       "frames": 31342,

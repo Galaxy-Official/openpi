@@ -92,13 +92,21 @@ def _save_artifacts(batch: dict, dump_dir: pathlib.Path) -> None:
     np.savetxt(dump_dir / "action.csv", np.asarray(batch["actions"][0]), fmt="%.6f")
 
 
-def build_dataset(repo_id: str, action_horizon: int, force_window: int, tactile_stack: int, drop_seed: int):
+def build_dataset(
+    repo_id: str,
+    action_horizon: int,
+    force_window: int,
+    tactile_stack: int,
+    drop_seed: int,
+    root: str | None,
+):
     spec = MultiModalDatasetSpec(
         repo_id=repo_id,
         action_horizon=action_horizon,
         force_window=force_window,
         tactile_frame_stack=tactile_stack,
         prompt_from_task=True,
+        root=root,
     )
     raw = LeRobotMultiModalDataset(spec)
     return _TransformedView(raw, MultiModalRepack(drop_seed=drop_seed))
@@ -133,6 +141,12 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument("--weights-json", type=str, default=None, help="Optional weights JSON to override alpha.")
     parser.add_argument("--dump-dir", type=str, default=None, help="If set, write batch artifacts here.")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--data-root",
+        type=str,
+        default=None,
+        help="Parent directory containing {repo_id}/. Defaults to $OPENPI_DATA_ROOT or ../openpi/Data.",
+    )
     args = parser.parse_args(argv)
 
     if args.repo_id is None and not args.repo_ids:
@@ -142,9 +156,17 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     repo_ids = [args.repo_id] if args.repo_id else list(args.repo_ids)
     print(f"Loading {len(repo_ids)} task(s): {repo_ids}")
+    print(f"Data root: {args.data_root or '<default: $OPENPI_DATA_ROOT or ../openpi/Data>'}")
 
     views = [
-        build_dataset(rid, args.action_horizon, args.force_window, args.tactile_stack, drop_seed=args.seed)
+        build_dataset(
+            rid,
+            args.action_horizon,
+            args.force_window,
+            args.tactile_stack,
+            drop_seed=args.seed,
+            root=args.data_root,
+        )
         for rid in repo_ids
     ]
     underlying = [v.raw_dataset for v in views]

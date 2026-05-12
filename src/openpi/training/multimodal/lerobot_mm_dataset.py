@@ -8,16 +8,23 @@ Wraps `lerobot.common.datasets.lerobot_dataset.LeRobotDataset` and adds:
 
 The output sample uses LeRobot's native key names (e.g. `observation.forces.left`).
 Use `MultiModalRepack` afterwards to map those to pi0.5 expected key names.
+
+Data root resolution: see `openpi.training.multimodal.paths.resolve_data_root`.
+The resolved value is treated as the parent directory of `{repo_id}/`.
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 import dataclasses
+import pathlib
 from typing import Any
 
 import lerobot.common.datasets.lerobot_dataset as lerobot_dataset
 import numpy as np
+
+from openpi.training.multimodal.paths import DATA_ROOT_ENV
+from openpi.training.multimodal.paths import resolve_data_root
 
 ActionKey = "action"
 ForceLeftKey = "observation.forces.left"
@@ -26,6 +33,13 @@ TactileLeftKey = "observation.tactiles.left"
 TactileRightKey = "observation.tactiles.right"
 ImagePhoneKey = "observation.images.phone"
 ImageWristKey = "observation.images.wrist"
+
+__all__ = [
+    "DATA_ROOT_ENV",
+    "LeRobotMultiModalDataset",
+    "MultiModalDatasetSpec",
+    "resolve_data_root",
+]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -43,6 +57,8 @@ class MultiModalDatasetSpec:
     prompt_from_task: bool = True
     # Optional stable name used by samplers/loggers; defaults to repo_id.
     name: str | None = None
+    # Parent directory containing `{repo_id}/`. None triggers `resolve_data_root()`.
+    root: str | None = None
 
     @property
     def task_name(self) -> str:
@@ -107,17 +123,31 @@ class LeRobotMultiModalDataset:
 
     def __init__(self, spec: MultiModalDatasetSpec):
         self.spec = spec
-        self._meta = lerobot_dataset.LeRobotDatasetMetadata(spec.repo_id)
+        data_root = resolve_data_root(spec.root)
+        task_root = data_root / spec.repo_id
+        if not task_root.exists():
+            raise FileNotFoundError(
+                f"LeRobot task directory not found: {task_root}. "
+                f"Set spec.root or ${DATA_ROOT_ENV} to the parent directory of {spec.repo_id}/."
+            )
+        self._task_root = task_root
+
+        self._meta = lerobot_dataset.LeRobotDatasetMetadata(spec.repo_id, root=task_root)
         fps = float(self._meta.fps)
 
         delta_timestamps = _build_delta_timestamps(spec, fps)
         self._dataset = lerobot_dataset.LeRobotDataset(
             spec.repo_id,
+            root=task_root,
             delta_timestamps=delta_timestamps,
         )
         # Cache the set of feature keys actually declared by this task.
         self._features = set(self._meta.features.keys())
         self._tasks_map: dict[int, str] = dict(self._meta.tasks)
+
+    @property
+    def task_root(self) -> pathlib.Path:
+        return self._task_root
 
     @property
     def task_name(self) -> str:
