@@ -1,0 +1,38 @@
+{
+  "alpha": 0.5,
+  "note": "task sampling weights, w_i = frames_i**alpha normalized; see Data/dataset_scan_report/task_summary.csv",
+  "tasks": {
+    "429_erase_board_lerobot": {
+      "frames": 31342,
+      "weight": 0.12581
+    },
+    "430_clamp_seal_lerobot": {
+      "frames": 34746,
+      "weight": 0.132466
+    },
+    "430_towel_hanging_lerobot": {
+      "frames": 33310,
+      "weight": 0.1297
+    },
+    "501_bread_moving_lerobot": {
+      "frames": 20518,
+      "weight": 0.101794
+    },
+    "505_screw_lerobot": {
+      "frames": 44155,
+      "weight": 0.149328
+    },
+    "505_stiring_lerobot": {
+      "frames": 27380,
+      "weight": 0.11759
+    },
+    "506_open_bottle_lerobot": {
+      "frames": 29023,
+      "weight": 0.121066
+    },
+    "506_peg_flowers_lerobot": {
+      "frames": 29591,
+      "weight": 0.122245
+    }
+  }
+}
