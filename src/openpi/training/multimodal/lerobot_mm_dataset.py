@@ -143,7 +143,7 @@ class LeRobotMultiModalDataset:
         )
         # Cache the set of feature keys actually declared by this task.
         self._features = set(self._meta.features.keys())
-        self._tasks_map: dict[int, str] = dict(self._meta.tasks)
+        self._tasks_map = _build_task_index_map(self._meta.tasks)
 
     @property
     def task_root(self) -> pathlib.Path:
@@ -190,7 +190,10 @@ class LeRobotMultiModalDataset:
         # Optional modalities -> fill with zeros + mask=False if missing.
         for key in self._OPTIONAL_KEYS:
             if key in raw:
-                out[key] = _to_numpy(raw[key])
+                value = _to_numpy(raw[key])
+                if key in (ForceLeftKey, ForceRightKey):
+                    value = _squeeze_scalar_force(value)
+                out[key] = value
                 out[f"{key}.mask"] = np.array(True, dtype=bool)  # noqa: FBT003
             else:
                 out[key] = self._zero_for(key)
@@ -198,8 +201,7 @@ class LeRobotMultiModalDataset:
 
         # Prompt from task index.
         if self.spec.prompt_from_task:
-            tidx = int(out.get("task_index", 0))
-            out["prompt"] = self._tasks_map.get(tidx, "")
+            out["prompt"] = _prompt_from_raw_or_index(raw, out, self._tasks_map)
 
         out["task_name"] = self.spec.task_name
         return out
@@ -226,8 +228,11 @@ class LeRobotMultiModalDataset:
 
         declared_shape = tuple(feat.get("shape", ()))
         # Prepend a time axis for windowed modalities.
-        if key in (ForceLeftKey, ForceRightKey) and self.spec.force_window > 1:
-            shape = (self.spec.force_window, *declared_shape)
+        if key in (ForceLeftKey, ForceRightKey):
+            # Force channels are scalar in the LeRobot metadata (`shape=[1]`).
+            # The multimodal pipeline treats each side as a 1-D temporal window
+            # so left/right can later be stacked into `(T, 2)`.
+            shape = (self.spec.force_window,) if self.spec.force_window > 1 else declared_shape[:1]
         elif key in (TactileLeftKey, TactileRightKey) and self.spec.tactile_frame_stack > 1:
             shape = (self.spec.tactile_frame_stack, *declared_shape)
         else:
@@ -248,3 +253,61 @@ def _to_numpy(value: Any) -> np.ndarray:
         return np.asarray(value)
     except Exception:
         return np.asarray(value, dtype=object)
+
+
+def _squeeze_scalar_force(value: np.ndarray) -> np.ndarray:
+    """Normalize scalar force samples from `(T, 1)` / `(1,)` to `(T,)`."""
+    arr = np.asarray(value, dtype=np.float32)
+    if arr.ndim > 0 and arr.shape[-1] == 1:
+        arr = np.squeeze(arr, axis=-1)
+    return arr
+
+
+def _scalar_int(value: Any, default: int = 0) -> int:
+    if value is None:
+        return default
+    arr = np.asarray(value)
+    if arr.size == 0:
+        return default
+    return int(arr.reshape(-1)[0])
+
+
+def _build_task_index_map(tasks: Any) -> dict[int, str]:
+    """Build `{task_index: task_text}` across LeRobot metadata versions.
+
+    LeRobot v3 exposes tasks as a DataFrame indexed by task text with a
+    `task_index` column, while older/local code may hand in an ordinary mapping.
+    """
+    if tasks is None:
+        return {}
+
+    if hasattr(tasks, "iterrows"):
+        mapping: dict[int, str] = {}
+        for task_text, row in tasks.iterrows():
+            if "task_index" in row:
+                mapping[int(row["task_index"])] = str(task_text)
+        if mapping:
+            return mapping
+
+    if isinstance(tasks, dict):
+        mapping = {}
+        for key, value in tasks.items():
+            try:
+                mapping[int(key)] = str(value)
+                continue
+            except (TypeError, ValueError):
+                pass
+            try:
+                mapping[int(value)] = str(key)
+            except (TypeError, ValueError):
+                continue
+        return mapping
+
+    return {}
+
+
+def _prompt_from_raw_or_index(raw: dict[str, Any], out: dict[str, Any], tasks_map: dict[int, str]) -> str:
+    raw_task = raw.get("task")
+    if raw_task is not None:
+        return str(raw_task)
+    return tasks_map.get(_scalar_int(out.get("task_index")), "")
