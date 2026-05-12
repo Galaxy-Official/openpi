@@ -1,0 +1,22 @@
+{
+  "task_names_in_batch": [
+    "506_peg_flowers_lerobot",
+    "505_stiring_lerobot",
+    "501_bread_moving_lerobot",
+    "506_peg_flowers_lerobot",
+    "505_stiring_lerobot",
+    "506_open_bottle_lerobot",
+    "430_clamp_seal_lerobot",
+    "430_towel_hanging_lerobot"
+  ],
+  "task_indices_in_batch": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ]
+}
