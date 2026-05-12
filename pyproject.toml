@@ -63,7 +63,14 @@ rlds = [
 ]
 
 [tool.uv]
-override-dependencies = ["ml-dtypes==0.4.1", "tensorstore==0.1.74"]
+override-dependencies = [
+    "ml-dtypes==0.4.1",
+    "tensorstore==0.1.74",
+    # lerobot >= 0.4 pulls rerun-sdk >= 0.24 which hard-requires numpy>=2.
+    # openpi otherwise still needs numpy<2 (jax/ml-dtypes/tensorstore stack),
+    # so cap rerun-sdk to the last release that supports numpy 1.x.
+    "rerun-sdk<0.24.0",
+]
 
 [tool.uv.sources]
 openpi-client = { workspace = true }
