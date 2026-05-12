@@ -12,19 +12,18 @@ Image and tactile modalities are intentionally excluded: SigLIP and the
 tactile encoder will apply their own per-modality normalization downstream.
 
 Examples:
-    # Default: all 8 tasks, 50k frames sample, output under `assets/<run>/`.
+    # Default: all 8 tasks, 50k frames sample, output under `<repo>/debug_outputs/`.
     uv run scripts/compute_norm_stats_mm.py \
         --repo-ids 429_erase_board_lerobot 430_clamp_seal_lerobot 430_towel_hanging_lerobot \
                    501_bread_moving_lerobot 505_screw_lerobot 505_stiring_lerobot \
                    506_open_bottle_lerobot 506_peg_flowers_lerobot \
         --weights-json src/openpi/training/multimodal/task_weights.json \
-        --output-dir assets/lerobot_mm_pretrain \
         --max-frames 50000 \
         --batch-size 32 --num-workers 4
 
     # Single task smoke test
     uv run scripts/compute_norm_stats_mm.py --repo-id 430_clamp_seal_lerobot \
-        --output-dir /tmp/norm_stats_smoke --max-frames 1024
+        --max-frames 1024
 """
 
 from __future__ import annotations
@@ -51,6 +50,13 @@ from openpi.training.multimodal import multimodal_collate_fn
 _STATE_KEYS_FULL: tuple[str, ...] = ("state", "actions")
 _STATE_KEYS_OPTIONAL: tuple[str, ...] = ("state_phone",)
 _FORCE_KEYS: tuple[str, ...] = ("force/left", "force/right")
+
+
+def _repo_root() -> pathlib.Path:
+    return pathlib.Path(__file__).resolve().parents[1]
+
+
+DEFAULT_OUTPUT_DIR = _repo_root() / "debug_outputs"
 
 
 def _select(batch: dict, dotted: str):
@@ -118,7 +124,11 @@ def _build_loader(
             return len(self._base)
 
         def __getitem__(self, idx):
-            return self._transform(self._base[int(idx)])
+            raw = self._base[int(idx)]
+            out = self._transform(raw)
+            if "observation.state_phone" in raw:
+                out["state_phone"] = np.asarray(raw["observation.state_phone"], dtype=np.float32)
+            return out
 
     dataset = _Wrapped(concat, repack)
 
@@ -189,7 +199,12 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument("--repo-id", type=str, default=None, help="Single task to load.")
     parser.add_argument("--repo-ids", type=str, nargs="*", default=None, help="Multiple tasks for ConcatDataset.")
     parser.add_argument("--data-root", type=str, default=None)
-    parser.add_argument("--output-dir", type=str, required=True, help="Where to write norm_stats.json.")
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=None,
+        help=f"Where to write norm_stats.json. Defaults to {DEFAULT_OUTPUT_DIR}.",
+    )
     parser.add_argument("--max-frames", type=int, default=None, help="Cap the total number of frames sampled.")
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--num-workers", type=int, default=2)
@@ -218,7 +233,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         parser.error("Provide --repo-id or --repo-ids.")
 
     repo_ids = [args.repo_id] if args.repo_id else list(args.repo_ids)
-    output_dir = pathlib.Path(args.output_dir).resolve()
+    output_dir = pathlib.Path(args.output_dir).expanduser().resolve() if args.output_dir else DEFAULT_OUTPUT_DIR
     print(f"Tasks: {repo_ids}")
     print(f"Output: {output_dir / 'norm_stats.json'}")
 
@@ -237,8 +252,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     )
 
     keys = list(_STATE_KEYS_FULL) + list(_FORCE_KEYS)
-    if args.include_state_phone or not args.use_full_state:
-        keys.append("state_phone" if args.use_full_state else _STATE_KEYS_OPTIONAL[0])
+    if args.include_state_phone and args.use_full_state:
+        keys.append(_STATE_KEYS_OPTIONAL[0])
     print(f"Accumulating stats for: {keys}")
     print(f"ConcatDataset frames: {total_frames}; cap: {args.max_frames or 'all'}")
 

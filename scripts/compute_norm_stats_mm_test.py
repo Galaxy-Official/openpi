@@ -40,3 +40,7 @@ def test_one_dim_array_promoted_to_one_feature():
     arr = np.arange(7, dtype=np.float32)
     out = cns._shape_for_running_stats(arr, "scalar_thing")  # noqa: SLF001
     assert out.shape == (7, 1)
+
+
+def test_default_output_dir_is_repo_debug_outputs():
+    assert cns.DEFAULT_OUTPUT_DIR == cns._repo_root() / "debug_outputs"  # noqa: SLF001
