@@ -1,6 +1,6 @@
 """LeRobot dataset wrapper that exposes force/tactile windows.
 
-Wraps `lerobot.common.datasets.lerobot_dataset.LeRobotDataset` and adds:
+Wraps `lerobot.datasets.lerobot_dataset.LeRobotDataset` and adds:
 - action horizon window (already supported by LeRobotDataset via `delta_timestamps`)
 - force window (e.g. last T frames) for left/right channels
 - single-frame or stacked tactile videos for left/right channels
@@ -20,7 +20,7 @@ import dataclasses
 import pathlib
 from typing import Any
 
-import lerobot.common.datasets.lerobot_dataset as lerobot_dataset
+import lerobot.datasets.lerobot_dataset as lerobot_dataset
 import numpy as np
 
 from openpi.training.multimodal.paths import DATA_ROOT_ENV
