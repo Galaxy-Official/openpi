@@ -67,18 +67,10 @@ def _save_artifacts(batch: dict, dump_dir: pathlib.Path) -> None:
         from PIL import Image  # noqa: PLC0415
 
         for cam in ("base_0_rgb", "left_wrist_0_rgb", "right_wrist_0_rgb"):
-            arr = batch["image"][cam][0]
-            arr = np.asarray(arr)
-            if arr.dtype != np.uint8:
-                arr = np.clip(arr, 0, 255).astype(np.uint8)
+            arr = _to_png_array(batch["image"][cam][0])
             Image.fromarray(arr).save(dump_dir / f"image_{cam}.png")
         for side in ("left", "right"):
-            arr = np.asarray(batch["tactile"][side][0])
-            # Squeeze frame-stack dim if present.
-            if arr.ndim == 4:
-                arr = arr[-1]
-            if arr.dtype != np.uint8:
-                arr = np.clip(arr, 0, 255).astype(np.uint8)
+            arr = _to_png_array(batch["tactile"][side][0])
             Image.fromarray(arr).save(dump_dir / f"tactile_{side}.png")
     except ImportError:
         logging.warning("PIL not available; skipping image dumps.")
@@ -90,6 +82,33 @@ def _save_artifacts(batch: dict, dump_dir: pathlib.Path) -> None:
 
     # Save first action.
     np.savetxt(dump_dir / "action.csv", np.asarray(batch["actions"][0]), fmt="%.6f")
+
+
+def _to_png_array(value) -> np.ndarray:
+    """Convert CHW/HWC float or uint8 image arrays to PIL-compatible HWC uint8."""
+    arr = np.asarray(value)
+
+    # Frame stacks are `[T, C, H, W]` or `[T, H, W, C]`; dump the latest frame.
+    if arr.ndim == 4:
+        arr = arr[-1]
+
+    # LeRobot video frames commonly arrive as `[C, H, W]`.
+    if arr.ndim == 3 and arr.shape[0] in (1, 3, 4) and arr.shape[-1] not in (1, 3, 4):
+        arr = np.moveaxis(arr, 0, -1)
+
+    if arr.dtype != np.uint8:
+        arr = arr.astype(np.float32, copy=False)
+        if arr.size:
+            lo = float(np.nanmin(arr))
+            hi = float(np.nanmax(arr))
+            if -1.0 <= lo and hi <= 1.0:
+                arr = (arr + 1.0) * 127.5 if lo < 0.0 else arr * 255.0
+        arr = np.nan_to_num(arr, nan=0.0, posinf=255.0, neginf=0.0)
+        arr = np.clip(arr, 0, 255).astype(np.uint8)
+
+    if arr.ndim == 3 and arr.shape[-1] == 1:
+        arr = arr[..., 0]
+    return arr
 
 
 def build_dataset(

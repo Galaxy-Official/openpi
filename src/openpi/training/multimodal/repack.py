@@ -74,10 +74,12 @@ class MultiModalRepack(_transforms.DataTransformFn):
         phone_mask = phone is not None and not self._roll_drop(rng, self.vision_phone_drop)
         wrist_mask = wrist is not None and not self._roll_drop(rng, self.vision_wrist_drop)
 
+        image_template = phone if phone is not None else wrist
         image = {
-            "base_0_rgb": phone if phone is not None else np.zeros((224, 224, 3), dtype=np.uint8),
-            "left_wrist_0_rgb": wrist if wrist is not None else np.zeros((224, 224, 3), dtype=np.uint8),
-            "right_wrist_0_rgb": np.zeros((224, 224, 3), dtype=np.uint8),
+            "base_0_rgb": phone if phone is not None else self._zero_image_like(image_template),
+            "left_wrist_0_rgb": wrist if wrist is not None else self._zero_image_like(image_template),
+            # Keep the placeholder in the same channel layout as the real LeRobot frames.
+            "right_wrist_0_rgb": self._zero_image_like(image_template),
         }
         if not phone_mask:
             image["base_0_rgb"] = np.zeros_like(image["base_0_rgb"])
@@ -167,6 +169,12 @@ class MultiModalRepack(_transforms.DataTransformFn):
         if value is None:
             return None
         return np.asarray(value)
+
+    @staticmethod
+    def _zero_image_like(template: np.ndarray | None) -> np.ndarray:
+        if template is not None:
+            return np.zeros_like(template)
+        return np.zeros((3, 224, 224), dtype=np.float32)
 
     def _rng_from_sample(self, data) -> np.random.Generator:
         # Combine drop_seed with stable per-sample identifiers when available.
