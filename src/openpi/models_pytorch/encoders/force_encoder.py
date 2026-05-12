@@ -47,7 +47,6 @@ class ForceEncoder(nn.Module):
             dropout=dropout,
             batch_first=True,
             activation="gelu",
-            norm_first=True,
         )
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         self.out_norm = nn.LayerNorm(embed_dim)
