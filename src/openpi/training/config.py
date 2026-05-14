@@ -25,6 +25,7 @@ import openpi.shared.normalize as _normalize
 import openpi.training.droid_rlds_dataset as droid_rlds_dataset
 import openpi.training.misc.polaris_config as polaris_config
 import openpi.training.misc.roboarena_config as roboarena_config
+import openpi.training.multimodal.repack as multimodal_repack
 import openpi.training.optimizer as _optimizer
 import openpi.training.weight_loaders as weight_loaders
 import openpi.transforms as _transforms
@@ -96,6 +97,13 @@ class DataConfig:
     action_space: droid_rlds_dataset.DroidActionSpace | None = None
     # List of datasets to sample from: name, version, weight, and optionally filter_dict_path
     datasets: Sequence[droid_rlds_dataset.RLDSDataset] = ()
+
+    # Multi-task LeRobot data loading. If set, `create_data_loader` builds a
+    # weighted MultiTaskConcatDataset instead of a single LeRobot repo.
+    multi_task_repo_ids: Sequence[str] = ()
+    multi_task_data_root: str | None = None
+    multi_task_weights_json: str | None = None
+    multi_task_alpha: float = 0.5
 
 
 class GroupFactory(Protocol):
@@ -222,6 +230,44 @@ class SimpleDataConfig(DataConfigFactory):
             self.create_base_config(assets_dirs, model_config),
             data_transforms=self.data_transforms(model_config),
             model_transforms=self.model_transforms(model_config),
+        )
+
+
+@dataclasses.dataclass(frozen=True)
+class MultiTaskLeRobotVisionDataConfig(DataConfigFactory):
+    """Wrist-camera-only multi-task LeRobot config for native pi0/pi0.5 training."""
+
+    # Stable synthetic repo id used for assets/norm-stats lookup.
+    repo_id: str = "umi_multitask_vision"
+    # Intentionally empty by default: callers must choose the task set at run time.
+    repo_ids: Sequence[str] = ()
+    data_root: str | None = None
+    weights_json: str | None = "src/openpi/training/multimodal/task_weights.json"
+    alpha: float = 0.5
+    use_full_state: bool = True
+    model_transforms: tyro.conf.Suppress[GroupFactory] = dataclasses.field(default_factory=ModelTransformFactory)
+
+    @override
+    def create(self, assets_dirs: pathlib.Path, model_config: _model.BaseModelConfig) -> DataConfig:
+        if not self.repo_ids:
+            raise ValueError(
+                "MultiTaskLeRobotVisionDataConfig.repo_ids is empty. "
+                "Pass the task directories for this run, e.g. `--data.repo-ids task_a task_b`."
+            )
+
+        return dataclasses.replace(
+            self.create_base_config(assets_dirs, model_config),
+            repack_transforms=_transforms.Group(
+                inputs=[multimodal_repack.VisionOnlyWristRepack(use_full_state=self.use_full_state)]
+            ),
+            data_transforms=_transforms.Group(),
+            model_transforms=self.model_transforms(model_config),
+            action_sequence_keys=("action",),
+            prompt_from_task=False,
+            multi_task_repo_ids=tuple(self.repo_ids),
+            multi_task_data_root=self.data_root,
+            multi_task_weights_json=self.weights_json,
+            multi_task_alpha=self.alpha,
         )
 
 
@@ -915,6 +961,35 @@ _CONFIGS = [
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_droid/params"),
         num_train_steps=20_000,
         batch_size=32,
+    ),
+    #
+    # UMI multi-task pure-vision pi0.5 pretraining configs.
+    #
+    TrainConfig(
+        name="pi05_umi_vision_multitask",
+        model=pi0_config.Pi0Config(
+            pi05=True,
+            action_dim=32,
+            action_horizon=50,
+        ),
+        data=MultiTaskLeRobotVisionDataConfig(
+            assets=AssetsConfig(asset_id="umi_multitask_vision"),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_base/params"),
+        lr_schedule=_optimizer.CosineDecaySchedule(
+            warmup_steps=1_000,
+            peak_lr=5e-5,
+            decay_steps=1_000_000,
+            decay_lr=5e-5,
+        ),
+        optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),
+        ema_decay=0.999,
+        num_train_steps=200_000,
+        batch_size=128,
+        log_interval=100,
+        save_interval=5_000,
+        keep_period=25_000,
+        num_workers=4,
     ),
     #
     # ALOHA Sim configs. This config is used to demonstrate how to train on a simple simulated environment.

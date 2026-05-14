@@ -2,6 +2,7 @@ from collections.abc import Iterator, Sequence
 import logging
 import multiprocessing
 import os
+import pathlib
 import typing
 from typing import Literal, Protocol, SupportsIndex, TypeVar
 
@@ -14,6 +15,11 @@ import torch
 import openpi.models.model as _model
 import openpi.training.config as _config
 from openpi.training.droid_rlds_dataset import DroidRldsDataset
+from openpi.training.multimodal import LeRobotMultiModalDataset
+from openpi.training.multimodal import MultiModalDatasetSpec
+from openpi.training.multimodal import MultiTaskConcatDataset
+from openpi.training.multimodal import load_task_weights
+from openpi.training.multimodal import make_weighted_sampler
 import openpi.transforms as _transforms
 
 T_co = TypeVar("T_co", covariant=True)
@@ -131,6 +137,9 @@ def create_torch_dataset(
     data_config: _config.DataConfig, action_horizon: int, model_config: _model.BaseModelConfig
 ) -> Dataset:
     """Create a dataset for training."""
+    if data_config.multi_task_repo_ids:
+        return create_multitask_lerobot_dataset(data_config, action_horizon)
+
     repo_id = data_config.repo_id
     if repo_id is None:
         raise ValueError("Repo ID is not set. Cannot create dataset.")
@@ -149,6 +158,47 @@ def create_torch_dataset(
         dataset = TransformedDataset(dataset, [_transforms.PromptFromLeRobotTask(dataset_meta.tasks)])
 
     return dataset
+
+
+def create_multitask_lerobot_dataset(data_config: _config.DataConfig, action_horizon: int) -> MultiTaskConcatDataset:
+    """Create the weighted-sampler-compatible multi-task LeRobot dataset."""
+    datasets = []
+    for repo_id in data_config.multi_task_repo_ids:
+        spec = MultiModalDatasetSpec(
+            repo_id=repo_id,
+            action_horizon=action_horizon,
+            force_window=1,
+            tactile_frame_stack=1,
+            prompt_from_task=True,
+            root=data_config.multi_task_data_root,
+        )
+        datasets.append(LeRobotMultiModalDataset(spec))
+    return MultiTaskConcatDataset(datasets)
+
+
+def create_multitask_weighted_sampler(
+    dataset: Dataset,
+    data_config: _config.DataConfig,
+    *,
+    seed: int,
+) -> torch.utils.data.WeightedRandomSampler | None:
+    if not isinstance(dataset, MultiTaskConcatDataset):
+        return None
+
+    task_weights = None
+    if data_config.multi_task_weights_json:
+        weights_path = pathlib.Path(data_config.multi_task_weights_json).expanduser()
+        meta = load_task_weights(weights_path)
+        task_weights = {k: v["weight"] for k, v in meta["tasks"].items()}
+
+    generator = torch.Generator().manual_seed(seed)
+    return make_weighted_sampler(
+        dataset,
+        alpha=data_config.multi_task_alpha,
+        task_weights=task_weights,
+        num_samples=len(dataset),
+        generator=generator,
+    )
 
 
 def create_rlds_dataset(
@@ -299,22 +349,28 @@ def create_torch_data_loader(
             execute in the main process.
         seed: The seed to use for shuffling the data.
     """
-    dataset = create_torch_dataset(data_config, action_horizon, model_config)
-    dataset = transform_dataset(dataset, data_config, skip_norm_stats=skip_norm_stats)
+    raw_dataset = create_torch_dataset(data_config, action_horizon, model_config)
+    dataset = transform_dataset(raw_dataset, data_config, skip_norm_stats=skip_norm_stats)
 
     # Use TorchDataLoader for both frameworks
     # For PyTorch DDP, create DistributedSampler and divide batch size by world size
     # For JAX, divide by process count
-    sampler = None
+    sampler = create_multitask_weighted_sampler(raw_dataset, data_config, seed=seed)
     if framework == "pytorch":
         if torch.distributed.is_initialized():
-            sampler = torch.utils.data.distributed.DistributedSampler(
-                dataset,
-                num_replicas=torch.distributed.get_world_size(),
-                rank=torch.distributed.get_rank(),
-                shuffle=shuffle,
-                drop_last=True,
-            )
+            if sampler is not None:
+                # Replacement sampling is already stochastic; use a different stream
+                # per rank while preserving the same task probabilities.
+                rank_seed = seed + torch.distributed.get_rank()
+                sampler = create_multitask_weighted_sampler(raw_dataset, data_config, seed=rank_seed)
+            else:
+                sampler = torch.utils.data.distributed.DistributedSampler(
+                    dataset,
+                    num_replicas=torch.distributed.get_world_size(),
+                    rank=torch.distributed.get_rank(),
+                    shuffle=shuffle,
+                    drop_last=True,
+                )
             local_batch_size = batch_size // torch.distributed.get_world_size()
         else:
             local_batch_size = batch_size

@@ -7,6 +7,7 @@ from openpi.training.multimodal.mix_sampler import MultiTaskConcatDataset
 from openpi.training.multimodal.mix_sampler import load_task_weights
 from openpi.training.multimodal.mix_sampler import make_weighted_sampler
 from openpi.training.multimodal.repack import MultiModalRepack
+from openpi.training.multimodal.repack import VisionOnlyWristRepack
 
 __all__ = [
     "DATA_ROOT_ENV",
@@ -14,6 +15,7 @@ __all__ = [
     "MultiModalDatasetSpec",
     "MultiModalRepack",
     "MultiTaskConcatDataset",
+    "VisionOnlyWristRepack",
     "load_task_weights",
     "make_weighted_sampler",
     "multimodal_collate_fn",

@@ -188,3 +188,56 @@ class MultiModalRepack(_transforms.DataTransformFn):
         if p <= 0.0:
             return False
         return bool(rng.random() < p)
+
+
+@dataclasses.dataclass(frozen=True)
+class VisionOnlyWristRepack(_transforms.DataTransformFn):
+    """Build native pi0/pi0.5 inputs from wrist-camera-only LeRobot samples.
+
+    The server datasets have a phone/head camera feature, but this transform
+    intentionally never forwards it to the model. The only valid visual stream is
+    `left_wrist_0_rgb`; the base and right-wrist slots are zero placeholders with
+    false masks so the native pi0.5 image-key contract stays unchanged.
+    """
+
+    use_full_state: bool = True
+
+    def __call__(self, data: _transforms.DataDict) -> _transforms.DataDict:
+        state_key = "observation.state" if self.use_full_state else "observation.state_phone"
+        state = np.asarray(data[state_key], dtype=np.float32)
+        actions = np.asarray(data["action"], dtype=np.float32) if "action" in data else None
+
+        wrist = self._as_image(data.get("observation.images.wrist"))
+        wrist_ok = wrist is not None and _scalar_bool(data.get("observation.images.wrist.mask", True))
+        zero = self._zero_image_like(wrist)
+
+        out: dict = {
+            "image": {
+                "base_0_rgb": zero.copy(),
+                "left_wrist_0_rgb": wrist if wrist_ok else zero.copy(),
+                "right_wrist_0_rgb": zero.copy(),
+            },
+            "image_mask": {
+                "base_0_rgb": np.asarray(False, dtype=bool),
+                "left_wrist_0_rgb": np.asarray(wrist_ok, dtype=bool),
+                "right_wrist_0_rgb": np.asarray(False, dtype=bool),
+            },
+            "state": state,
+        }
+        if actions is not None:
+            out["actions"] = actions
+        if "prompt" in data:
+            out["prompt"] = data["prompt"]
+        return out
+
+    @staticmethod
+    def _as_image(value) -> np.ndarray | None:
+        if value is None:
+            return None
+        return np.asarray(value)
+
+    @staticmethod
+    def _zero_image_like(template: np.ndarray | None) -> np.ndarray:
+        if template is not None:
+            return np.zeros_like(template)
+        return np.zeros((224, 224, 3), dtype=np.uint8)
