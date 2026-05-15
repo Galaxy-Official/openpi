@@ -2,37 +2,41 @@
   "alpha": 0.5,
   "note": "task sampling weights, w_i = frames_i**alpha normalized; frames sourced from LeRobot metadata/debug scan under the data root (see $OPENPI_DATA_ROOT, default ../openpi/Data).",
   "tasks": {
+    "yellow_lerobot_428": {
+      "frames": 17161,
+      "weight": 0.07964
+    },
     "429_erase_board_lerobot": {
       "frames": 31342,
-      "weight": 0.11883
+      "weight": 0.107628
     },
     "430_clamp_seal_lerobot": {
       "frames": 34746,
-      "weight": 0.125117
+      "weight": 0.113322
     },
     "430_towel_hanging_lerobot": {
       "frames": 33310,
-      "weight": 0.122504
+      "weight": 0.110955
     },
     "501_bread_moving_lerobot": {
       "frames": 20518,
-      "weight": 0.096146
+      "weight": 0.087082
     },
     "505_screw_lerobot": {
       "frames": 44155,
-      "weight": 0.141043
-    },
-    "505_stiring_lerobot": {
-      "frames": 27380,
-      "weight": 0.111066
+      "weight": 0.127747
     },
     "506_peg_flowers_lerobot": {
       "frames": 29591,
-      "weight": 0.115463
+      "weight": 0.104578
     },
     "512_close_bottle_lerobot": {
       "frames": 64019,
-      "weight": 0.169831
+      "weight": 0.153821
+    },
+    "512_stiring_lerobot": {
+      "frames": 35924,
+      "weight": 0.115227
     }
   }
 }
