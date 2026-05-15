@@ -38,3 +38,15 @@ def test_vision_only_wrist_repack_does_not_fallback_to_phone_when_wrist_missing(
     assert not bool(out["image_mask"]["left_wrist_0_rgb"])
     assert not bool(out["image_mask"]["right_wrist_0_rgb"])
     assert np.all(out["image"]["left_wrist_0_rgb"] == 0)
+
+
+def test_vision_only_wrist_repack_converts_chw_float_to_hwc_uint8():
+    sample = _sample()
+    sample["observation.images.wrist"] = np.ones((3, 4, 5), dtype=np.float32)
+
+    out = VisionOnlyWristRepack()(sample)
+
+    assert out["image"]["left_wrist_0_rgb"].shape == (4, 5, 3)
+    assert out["image"]["left_wrist_0_rgb"].dtype == np.uint8
+    assert np.all(out["image"]["left_wrist_0_rgb"] == 255)
+    assert out["image"]["base_0_rgb"].shape == (4, 5, 3)

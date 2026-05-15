@@ -102,6 +102,19 @@ def _accumulate(loader, max_frames: int | None, batch_size: int):
     return stats, seen
 
 
+def _stabilize_constant_dims(stats: normalize.NormStats, eps: float = 1e-6) -> normalize.NormStats:
+    mean = np.asarray(stats.mean, dtype=np.float32)
+    std = np.asarray(stats.std, dtype=np.float32).copy()
+    q01 = np.asarray(stats.q01, dtype=np.float32).copy()
+    q99 = np.asarray(stats.q99, dtype=np.float32).copy()
+    constant = (q99 - q01) <= eps
+    if constant.any():
+        std[constant] = 1.0
+        q01[constant] = mean[constant] - 1.0
+        q99[constant] = mean[constant] + 1.0
+    return normalize.NormStats(mean=mean, std=std, q01=q01, q99=q99)
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-ids", type=str, nargs="+", required=True)
@@ -135,7 +148,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     print(f"ConcatDataset frames: {total_frames}; cap: {args.max_frames or 'all'}")
 
     stats, seen = _accumulate(loader, args.max_frames, args.batch_size)
-    norm_stats = {key: value.get_statistics() for key, value in stats.items()}
+    norm_stats = {key: _stabilize_constant_dims(value.get_statistics()) for key, value in stats.items()}
     normalize.save(output_dir, norm_stats)
     print(f"Done. Saw ~{seen} frames. Wrote {len(norm_stats)} stats to {output_dir / 'norm_stats.json'}")
 

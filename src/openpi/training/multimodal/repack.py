@@ -234,10 +234,34 @@ class VisionOnlyWristRepack(_transforms.DataTransformFn):
     def _as_image(value) -> np.ndarray | None:
         if value is None:
             return None
-        return np.asarray(value)
+        return _image_to_hwc_uint8(value)
 
     @staticmethod
     def _zero_image_like(template: np.ndarray | None) -> np.ndarray:
         if template is not None:
             return np.zeros_like(template)
         return np.zeros((224, 224, 3), dtype=np.uint8)
+
+
+def _image_to_hwc_uint8(value) -> np.ndarray:
+    arr = np.asarray(value)
+    if arr.ndim != 3:
+        raise ValueError(f"Expected image with 3 dimensions, got {tuple(arr.shape)}")
+    if arr.shape[0] in (1, 3, 4) and arr.shape[-1] not in (1, 3, 4):
+        arr = np.transpose(arr, (1, 2, 0))
+    if arr.shape[-1] == 1:
+        arr = np.repeat(arr, 3, axis=-1)
+    elif arr.shape[-1] == 4:
+        arr = arr[..., :3]
+    if arr.shape[-1] != 3:
+        raise ValueError(f"Expected image with 3 channels, got {tuple(arr.shape)}")
+
+    if np.issubdtype(arr.dtype, np.floating):
+        arr = arr.astype(np.float32, copy=False)
+        if arr.size and np.nanmin(arr) < 0.0:
+            arr = (arr + 1.0) / 2.0
+        elif arr.size and np.nanmax(arr) > 1.5:
+            arr = arr / 255.0
+        arr = np.clip(arr, 0.0, 1.0)
+        return (arr * 255.0).round().astype(np.uint8)
+    return arr.astype(np.uint8, copy=False)
