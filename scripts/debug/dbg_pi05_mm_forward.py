@@ -1,14 +1,20 @@
 """Smoke-test PI05Multimodal end-to-end with a synthetic batch.
 
-Builds the dummy paligemma variant so the script runs in minutes on CPU and
-does not require pi05_base weights. The data side is mocked: we hand-build an
-`Observation` so we can exercise the model independently of PR5 data wiring.
+Builds a real-sized backbone (gemma_2b + gemma_300m by default) so the
+forward + backward actually exercises the prefix/suffix path. The data side
+is mocked: we hand-build an `Observation` so we can exercise the model
+independently of the data pipeline.
+
+Note: the upstream `dummy` paligemma variant has a hard-coded
+`vision_config.projection_dim = 2048` in `gemma_pytorch.py:38` that does
+not match its `text_config.hidden_size`, so its `forward` does not work
+in either `PI0Pytorch` or `PI05Multimodal`. Use the real-size defaults.
 
 Examples:
-    # Default dummy run, prints loss_dict for all 3 phases and verifies backward.
+    # Default real-size run, prints loss_dict for all 3 phases and verifies backward.
     uv run scripts/debug/dbg_pi05_mm_forward.py
 
-    # Larger, exercise gemma_300m action expert (still no pretrained weights).
+    # Override to a smaller LLM if you only want to test the encoder layout.
     uv run scripts/debug/dbg_pi05_mm_forward.py --paligemma-variant gemma_2b --action-expert-variant gemma_300m
 """
 
@@ -97,8 +103,8 @@ def _count_trainable(model: torch.nn.Module) -> tuple[int, int]:
 
 def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--paligemma-variant", type=str, default="dummy")
-    parser.add_argument("--action-expert-variant", type=str, default="dummy")
+    parser.add_argument("--paligemma-variant", type=str, default="gemma_2b")
+    parser.add_argument("--action-expert-variant", type=str, default="gemma_300m")
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--action-dim", type=int, default=10)
     parser.add_argument("--action-horizon", type=int, default=8)

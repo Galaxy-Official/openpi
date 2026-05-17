@@ -122,3 +122,14 @@ def test_repack_dropout_is_reproducible_per_sample():
     a = rp(dict(sample))
     b = rp(dict(sample))
     assert bool(a["tactile_mask"]["left"]) == bool(b["tactile_mask"]["left"])
+
+
+def test_repack_propagates_mm_task_index_when_present():
+    # `LeRobotMultiModalDataset` injects mm_task_index for multi-task setups;
+    # MultiModalRepack must keep it in the batch so PI05Multimodal can use it
+    # for the contrastive head's task-aware neg-mask.
+    sample = _fake_sample()
+    sample["mm_task_index"] = np.asarray(3, dtype=np.int64)
+    out = MultiModalRepack()(sample)
+    assert "mm_task_index" in out
+    assert int(out["mm_task_index"]) == 3

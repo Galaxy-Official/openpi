@@ -74,9 +74,20 @@ class PI05Multimodal(_pi0_pytorch.PI0Pytorch):
         self.contrastive_head: ContrastiveHead | None = None
 
         if config.use_tactile:
+            tactile_embedder = None
+            if config.tactile_use_siglip:
+                # Reuse PaliGemma's SigLIP weights for tactile patches as
+                # described in the plan. Cast back to float32 so the
+                # downstream LazyLinear / LayerNorm (kept at float32 for
+                # numerical stability) doesn't hit a dtype mismatch.
+                def _tactile_siglip(image: Tensor) -> Tensor:
+                    return self.paligemma_with_expert.embed_image(image).to(torch.float32)
+
+                tactile_embedder = _tactile_siglip
             self.tactile_encoder = TactileEncoder(
                 embed_dim=embed_dim,
                 num_tokens_per_side=config.n_tactile_tokens_per_side,
+                vision_embedder=tactile_embedder,
             )
         if config.use_force:
             self.force_encoder = ForceEncoder(
@@ -110,6 +121,13 @@ class PI05Multimodal(_pi0_pytorch.PI0Pytorch):
             raise ValueError("use_fusion=True requires use_tactile=True and use_force=True")
         if config.use_contrast and not config.use_fusion:
             raise ValueError("use_contrast=True requires use_fusion=True")
+        if config.use_vision_latent_contrast:
+            # The field + weight are reserved for a future PR. Fail loudly so
+            # nobody silently trains a model that thinks it is computing this
+            # auxiliary loss when it isn't.
+            raise NotImplementedError(
+                "use_vision_latent_contrast is not implemented yet; set it to False (the default)."
+            )
 
     # ------------------------------------------------------------------ utils
 
@@ -328,13 +346,19 @@ class PI05Multimodal(_pi0_pytorch.PI0Pytorch):
 
         z_vision, vision_valid = self._project_vision(image_tokens_list, image_mask_list)
 
+        # Prefer the global multi-task index injected by the data pipeline; fall
+        # back to LeRobot's per-repo `task_index` (mostly always 0) for legacy
+        # single-task setups.
+        task_id_for_negmask = getattr(observation, "mm_task_index", None)
+        if task_id_for_negmask is None:
+            task_id_for_negmask = getattr(observation, "task_index", None)
         return {
             "action_loss": action_loss,
             "z_vision": z_vision,
             "z_touchforce": z_touchforce,
             "vision_valid": vision_valid,
             "touchforce_valid": tf_valid,
-            "task_index": getattr(observation, "task_index", None),
+            "task_index": task_id_for_negmask,
             "frame_index": getattr(observation, "frame_index", None),
         }
 
@@ -415,6 +439,66 @@ class PI05Multimodal(_pi0_pytorch.PI0Pytorch):
             "neg_sim": out["neg_sim"],
             "acc@1": out["acc@1"],
         }
+
+    # ----------------------------------------------------- inference override
+
+    @torch.no_grad()
+    def sample_actions(self, device, observation, noise=None, num_steps=10) -> Tensor:
+        """Mirror `PI0Pytorch.sample_actions` but use the fused prefix.
+
+        Without this override, the inherited `sample_actions` would call the
+        base `embed_prefix(images, img_masks, lang_tokens, lang_masks)` which
+        ignores tactile/force entirely; the model would then see a prefix
+        distribution that doesn't match what it was trained on.
+        """
+        bsize = observation.state.shape[0]
+        if noise is None:
+            actions_shape = (bsize, self.config.action_horizon, self.config.action_dim)
+            noise = self.sample_noise(actions_shape, device)
+
+        images, img_masks, lang_tokens, lang_masks, state = self._preprocess_observation(observation, train=False)
+
+        fused_tokens, fused_mask, _, _ = self._encode_touch_force(observation)
+        prefix_embs, prefix_pad_masks, prefix_att_masks, _, _ = self._embed_prefix_with_fusion(
+            images, img_masks, lang_tokens, lang_masks, fused_tokens, fused_mask
+        )
+        prefix_att_2d_masks = _pi0_pytorch.make_att_2d_masks(prefix_pad_masks, prefix_att_masks)
+        prefix_position_ids = torch.cumsum(prefix_pad_masks, dim=1) - 1
+
+        prefix_att_2d_masks_4d = self._prepare_attention_masks_4d(prefix_att_2d_masks)
+        self.paligemma_with_expert.paligemma.language_model.config._attn_implementation = "eager"  # noqa: SLF001
+
+        first_layer_dtype = self.paligemma_with_expert.paligemma.language_model.layers[0].self_attn.q_proj.weight.dtype
+        if first_layer_dtype == torch.bfloat16:
+            prefix_embs = prefix_embs.to(dtype=torch.bfloat16)
+
+        _, past_key_values = self.paligemma_with_expert.forward(
+            attention_mask=prefix_att_2d_masks_4d,
+            position_ids=prefix_position_ids,
+            past_key_values=None,
+            inputs_embeds=[prefix_embs, None],
+            use_cache=True,
+        )
+
+        dt = -1.0 / num_steps
+        dt = torch.tensor(dt, dtype=torch.float32, device=device)
+
+        x_t = noise
+        time = torch.tensor(1.0, dtype=torch.float32, device=device)
+        while time >= -dt / 2:
+            expanded_time = time.expand(bsize)
+            v_t = self.denoise_step(
+                state,
+                prefix_pad_masks,
+                past_key_values,
+                x_t,
+                expanded_time,
+            )
+            x_t = x_t + dt * v_t
+            time += dt
+        return x_t
+
+    # ------------------------------------------------------------ scheduling
 
     def phase_for(self, step: int) -> str:
         cfg = self.mm_config

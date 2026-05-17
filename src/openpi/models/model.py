@@ -115,6 +115,11 @@ class Observation(Generic[ArrayT]):
     force_mask: dict[str, ArrayT] | None = None
     task_index: ArrayT | None = None
     frame_index: ArrayT | None = None
+    # Global task index assigned by the multi-task aggregator; see
+    # `MultiModalDatasetSpec.global_task_index`. Falls back to `task_index`
+    # when None, but `task_index` is per-repo so it's unreliable across
+    # tasks. Preferred by `PI05Multimodal`'s task-aware neg-mask.
+    mm_task_index: ArrayT | None = None
 
     @classmethod
     def from_dict(cls, data: at.PyTree[ArrayT]) -> "Observation[ArrayT]":
@@ -142,6 +147,7 @@ class Observation(Generic[ArrayT]):
             force_mask=data.get("force_mask"),
             task_index=data.get("task_index"),
             frame_index=data.get("frame_index"),
+            mm_task_index=data.get("mm_task_index"),
         )
 
     def to_dict(self) -> at.PyTree[ArrayT]:
@@ -258,8 +264,21 @@ class BaseModelConfig(abc.ABC):
 
     def load_pytorch(self, train_config, weight_path: str):
         logger.info(f"train_config: {train_config}")
-        model = pi0_pytorch.PI0Pytorch(config=train_config.model)
-        safetensors.torch.load_model(model, weight_path)
+        # Dispatch on the model config type so multi-modal configs build the
+        # multi-modal model class. `pi05_multimodal_pytorch` is imported lazily
+        # to keep the cold import cost off the native pi0 / pi0.5 path.
+        from openpi.models import pi0_config_mm as _pi0_config_mm  # noqa: PLC0415
+
+        if isinstance(train_config.model, _pi0_config_mm.Pi0ConfigMM):
+            from openpi.models_pytorch import pi05_multimodal_pytorch as _pi05_mm  # noqa: PLC0415
+
+            model = _pi05_mm.PI05Multimodal(config=train_config.model)
+            # New encoder/fusion/contrast modules are not present in the
+            # pi05_base safetensors, so allow missing keys for them.
+            safetensors.torch.load_model(model, weight_path, strict=False)
+        else:
+            model = pi0_pytorch.PI0Pytorch(config=train_config.model)
+            safetensors.torch.load_model(model, weight_path)
         return model
 
     @abc.abstractmethod

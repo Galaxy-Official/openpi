@@ -59,6 +59,12 @@ class MultiModalDatasetSpec:
     name: str | None = None
     # Parent directory containing `{repo_id}/`. None triggers `resolve_data_root()`.
     root: str | None = None
+    # Global task index assigned when this dataset is one of many in a multi-task
+    # ConcatDataset. The raw LeRobot `task_index` is per-repo (usually always 0
+    # because each repo has a single task), which makes any task-aware neg-mask
+    # in the contrastive head useless across tasks. When set, samples carry an
+    # extra `mm_task_index` field that the model can use as the global task id.
+    global_task_index: int | None = None
 
     @property
     def task_name(self) -> str:
@@ -202,6 +208,10 @@ class LeRobotMultiModalDataset:
         # Prompt from task index.
         if self.spec.prompt_from_task:
             out["prompt"] = _prompt_from_raw_or_index(raw, out, self._tasks_map)
+
+        # Global task id for multi-task aggregation; see MultiModalDatasetSpec.global_task_index.
+        if self.spec.global_task_index is not None:
+            out["mm_task_index"] = np.asarray(self.spec.global_task_index, dtype=np.int64)
 
         out["task_name"] = self.spec.task_name
         return out

@@ -121,6 +121,12 @@ def test_use_contrast_requires_fusion():
         pi05_mm.PI05Multimodal.validate_toggles(cfg)
 
 
+def test_use_vision_latent_contrast_is_rejected_until_implemented():
+    cfg = _make_config(use_vision_latent_contrast=True)
+    with pytest.raises(NotImplementedError, match="use_vision_latent_contrast"):
+        pi05_mm.PI05Multimodal.validate_toggles(cfg)
+
+
 # ------------------------------------------------------ optional integration
 
 

@@ -163,7 +163,7 @@ def create_torch_dataset(
 def create_multitask_lerobot_dataset(data_config: _config.DataConfig, action_horizon: int) -> MultiTaskConcatDataset:
     """Create the weighted-sampler-compatible multi-task LeRobot dataset."""
     datasets = []
-    for repo_id in data_config.multi_task_repo_ids:
+    for i, repo_id in enumerate(data_config.multi_task_repo_ids):
         spec = MultiModalDatasetSpec(
             repo_id=repo_id,
             action_horizon=action_horizon,
@@ -171,6 +171,10 @@ def create_multitask_lerobot_dataset(data_config: _config.DataConfig, action_hor
             tactile_frame_stack=data_config.multi_task_tactile_frame_stack,
             prompt_from_task=True,
             root=data_config.multi_task_data_root,
+            # Index in `multi_task_repo_ids` becomes the global task id used by
+            # the contrastive head's task-aware neg-mask. Without this, every
+            # sample would carry the same within-repo task_index (usually 0).
+            global_task_index=i,
         )
         datasets.append(LeRobotMultiModalDataset(spec))
     return MultiTaskConcatDataset(datasets)

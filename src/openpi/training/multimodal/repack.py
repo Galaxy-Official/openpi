@@ -165,7 +165,7 @@ class MultiModalRepack(_transforms.DataTransformFn):
         }
         if actions is not None:
             out["actions"] = actions
-        for k in ("task_index", "episode_index", "frame_index", "index", "timestamp"):
+        for k in ("task_index", "episode_index", "frame_index", "index", "timestamp", "mm_task_index"):
             if k in data:
                 out[k] = np.asarray(data[k])
         if "prompt" in data:

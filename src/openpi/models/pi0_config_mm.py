@@ -48,6 +48,11 @@ class Pi0ConfigMM(_pi0_config.Pi0Config):
     tactile_frame_stack: int = 1
     force_window: int = 16
     force_input_dim: int = 2  # left + right scalar -> stacked into 2 channels
+    # If True, TactileEncoder shares PaliGemma's SigLIP vision tower as its
+    # patch embedder (matches the original plan). False uses the lightweight
+    # randomly-initialized patch stem from PR3 and keeps the tactile branch
+    # independent of the pretrained image features.
+    tactile_use_siglip: bool = False
 
     # ---- Contrastive head ----------------------------------------------------
     contrast_weight: float = 0.1
