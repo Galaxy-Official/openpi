@@ -167,8 +167,8 @@ def create_multitask_lerobot_dataset(data_config: _config.DataConfig, action_hor
         spec = MultiModalDatasetSpec(
             repo_id=repo_id,
             action_horizon=action_horizon,
-            force_window=1,
-            tactile_frame_stack=1,
+            force_window=data_config.multi_task_force_window,
+            tactile_frame_stack=data_config.multi_task_tactile_frame_stack,
             prompt_from_task=True,
             root=data_config.multi_task_data_root,
         )

@@ -55,6 +55,11 @@ class MultiModalRepack(_transforms.DataTransformFn):
     # If True, will use `state` (10-dim) as the main state. Otherwise pulls
     # `state_phone` (6-dim). pi0.5 expects state_dim == action_dim by default.
     use_full_state: bool = True
+    # If True, base_0_rgb is forced to zeros + mask=False even when the LeRobot
+    # `observation.images.phone` field is present. Used by training paths that
+    # deliberately drop the head camera (e.g., the cloud-server data uses only
+    # the wrist camera).
+    wrist_only: bool = False
     # Seed offset used to derive a per-sample RNG when drops are non-zero. The
     # actual seed combines this with `index` / `frame_index` for reproducibility.
     drop_seed: int = 0
@@ -70,6 +75,11 @@ class MultiModalRepack(_transforms.DataTransformFn):
         # ---- Vision images ----------------------------------------------------
         phone = self._as_image(data.get("observation.images.phone"))
         wrist = self._as_image(data.get("observation.images.wrist"))
+
+        # Wrist-only mode hard-disables the head/phone camera regardless of
+        # whether it's present in the underlying dataset.
+        if self.wrist_only:
+            phone = None
 
         phone_mask = phone is not None and not self._roll_drop(rng, self.vision_phone_drop)
         wrist_mask = wrist is not None and not self._roll_drop(rng, self.vision_wrist_drop)

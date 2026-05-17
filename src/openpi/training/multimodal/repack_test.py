@@ -101,6 +101,19 @@ def test_collate_stacks_numeric_and_lists_strings():
     assert len(batch["prompt"]) == 3
 
 
+def test_repack_wrist_only_zeros_base_camera_even_when_phone_present():
+    # Even with a real phone image in the sample, wrist_only must drop it.
+    sample = _fake_sample()
+    sample["observation.images.phone"] = np.full((480, 640, 3), 200, dtype=np.uint8)
+    out = MultiModalRepack(wrist_only=True)(sample)
+    assert bool(out["image_mask"]["base_0_rgb"]) is False
+    assert np.all(out["image"]["base_0_rgb"] == 0)
+    # Wrist still flows through and is masked True.
+    assert bool(out["image_mask"]["left_wrist_0_rgb"]) is True
+    # Right wrist slot continues to be a zero placeholder.
+    assert bool(out["image_mask"]["right_wrist_0_rgb"]) is False
+
+
 def test_repack_dropout_is_reproducible_per_sample():
     # Same drop_seed + same index -> same drop decision.
     sample = _fake_sample()

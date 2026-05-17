@@ -41,7 +41,9 @@ import tqdm
 import wandb
 
 import openpi.models.pi0_config
+import openpi.models.pi0_config_mm
 import openpi.models_pytorch.pi0_pytorch
+import openpi.models_pytorch.pi05_multimodal_pytorch
 import openpi.shared.normalize as _normalize
 import openpi.training.config as _config
 import openpi.training.data_loader as _data
@@ -144,6 +146,32 @@ def get_model_parameters(model):
         if isinstance(model, torch.nn.parallel.DistributedDataParallel)
         else model.parameters()
     )
+
+
+def _unwrap_model(model):
+    return model.module if isinstance(model, torch.nn.parallel.DistributedDataParallel) else model
+
+
+def _is_multimodal_model(model) -> bool:
+    return isinstance(_unwrap_model(model), openpi.models_pytorch.pi05_multimodal_pytorch.PI05Multimodal)
+
+
+def _split_mm_param_groups(model) -> tuple[list, list]:
+    """Return (backbone_params, new_module_params) for a PI05Multimodal model."""
+    inner = _unwrap_model(model)
+    backbone_ids = {id(p) for p in inner._backbone_params()}  # noqa: SLF001
+    new_module_ids = {id(p) for p in inner._new_module_params()}  # noqa: SLF001
+    backbone, new_modules, misc = [], [], []
+    for p in inner.parameters():
+        if id(p) in backbone_ids:
+            backbone.append(p)
+        elif id(p) in new_module_ids:
+            new_modules.append(p)
+        else:
+            misc.append(p)
+    # Treat unclassified params (none expected) as backbone for safety.
+    backbone.extend(misc)
+    return backbone, new_modules
 
 
 def save_checkpoint(model, optimizer, global_step, config, is_main, data_config):
@@ -406,7 +434,10 @@ def train_loop(config: _config.TrainConfig):
         # Update dtype to match pytorch_training_precision
         object.__setattr__(model_cfg, "dtype", config.pytorch_training_precision)
 
-    model = openpi.models_pytorch.pi0_pytorch.PI0Pytorch(model_cfg).to(device)
+    if isinstance(model_cfg, openpi.models.pi0_config_mm.Pi0ConfigMM):
+        model = openpi.models_pytorch.pi05_multimodal_pytorch.PI05Multimodal(model_cfg).to(device)
+    else:
+        model = openpi.models_pytorch.pi0_pytorch.PI0Pytorch(model_cfg).to(device)
 
     if hasattr(model, "gradient_checkpointing_enable"):
         enable_gradient_checkpointing = True
@@ -443,9 +474,24 @@ def train_loop(config: _config.TrainConfig):
         logging.info(f"Loading weights from: {config.pytorch_weight_path}")
 
         model_path = os.path.join(config.pytorch_weight_path, "model.safetensors")
-        safetensors.torch.load_model(
-            (model.module if isinstance(model, torch.nn.parallel.DistributedDataParallel) else model), model_path
-        )
+        target_model = _unwrap_model(model)
+        # For multi-modal training, the new encoder / fusion / contrastive head
+        # parameters are not in the pretrained checkpoint, so use strict=False
+        # and surface the missing/unexpected key lists for visibility.
+        strict = not _is_multimodal_model(model)
+        missing, unexpected = safetensors.torch.load_model(target_model, model_path, strict=strict)
+        if missing or unexpected:
+            logging.info(f"safetensors load summary: {len(missing)} missing keys, {len(unexpected)} unexpected keys")
+            if missing:
+                preview = ", ".join(missing[:5])
+                logging.info(f"  missing[:5]: {preview}{'...' if len(missing) > 5 else ''}")
+            if unexpected:
+                preview = ", ".join(unexpected[:5])
+                logging.info(f"  unexpected[:5]: {preview}{'...' if len(unexpected) > 5 else ''}")
+                raise RuntimeError(
+                    f"Found {len(unexpected)} unexpected keys when loading {model_path}. "
+                    "This usually indicates a config / checkpoint mismatch."
+                )
         logging.info(f"Loaded PyTorch weights from {config.pytorch_weight_path}")
 
     # Optimizer + learning rate schedule from config
@@ -454,14 +500,36 @@ def train_loop(config: _config.TrainConfig):
     decay_steps = config.lr_schedule.decay_steps
     end_lr = config.lr_schedule.decay_lr
 
-    # Create optimizer with config parameters
-    optim = torch.optim.AdamW(
-        model.parameters(),
-        lr=peak_lr,
-        betas=(config.optimizer.b1, config.optimizer.b2),
-        eps=config.optimizer.eps,
-        weight_decay=config.optimizer.weight_decay,
-    )
+    # Create optimizer. For multi-modal training the backbone (pi05_base) and
+    # the newly-introduced encoder/fusion/contrast modules sit in separate
+    # param groups so we can apply a smaller LR to the backbone via
+    # `lr_scale` while keeping a single CosineDecaySchedule shape.
+    if _is_multimodal_model(model):
+        backbone_params, new_module_params = _split_mm_param_groups(model)
+        backbone_lr_scale = 0.2  # backbone fine-tune: 0.2 * peak_lr = 1e-5 by default
+        new_module_lr_scale = 1.0
+        optim = torch.optim.AdamW(
+            [
+                {"params": backbone_params, "lr_scale": backbone_lr_scale, "name": "backbone"},
+                {"params": new_module_params, "lr_scale": new_module_lr_scale, "name": "new_modules"},
+            ],
+            lr=peak_lr,
+            betas=(config.optimizer.b1, config.optimizer.b2),
+            eps=config.optimizer.eps,
+            weight_decay=config.optimizer.weight_decay,
+        )
+        logging.info(
+            f"MM optimizer: backbone lr_scale={backbone_lr_scale} ({len(backbone_params):,} params), "
+            f"new_module lr_scale={new_module_lr_scale} ({len(new_module_params):,} params)"
+        )
+    else:
+        optim = torch.optim.AdamW(
+            model.parameters(),
+            lr=peak_lr,
+            betas=(config.optimizer.b1, config.optimizer.b2),
+            eps=config.optimizer.eps,
+            weight_decay=config.optimizer.weight_decay,
+        )
 
     # Load checkpoint if resuming
     global_step = 0
@@ -478,6 +546,21 @@ def train_loop(config: _config.TrainConfig):
         progress = min(1.0, (step - warmup_steps) / max(1, decay_steps - warmup_steps))
         cos = 0.5 * (1 + np.cos(np.pi * progress))
         return end_lr + (peak_lr - end_lr) * cos
+
+    # Multi-modal encoder warm-up: freeze the pretrained backbone until the
+    # configured step boundary so the new touch/force/fusion modules can shape
+    # themselves against L_contrast before perturbing the action expert.
+    mm_warmup_steps = 0
+    is_backbone_frozen = False
+    if _is_multimodal_model(model):
+        mm_warmup_steps = int(getattr(model_cfg, "encoder_warmup_steps", 0) or 0)
+        if mm_warmup_steps > 0 and global_step < mm_warmup_steps:
+            _unwrap_model(model).freeze_backbone_for_warmup()
+            is_backbone_frozen = True
+            logging.info(
+                f"[mm] Backbone frozen for the first {mm_warmup_steps} steps; "
+                f"only the new modules will receive gradients during encoder warm-up."
+            )
 
     model.train()
     start_time = time.time()
@@ -521,19 +604,40 @@ def train_loop(config: _config.TrainConfig):
             actions = actions.to(torch.float32)  # noqa: PLW2901
             actions = actions.to(device)  # noqa: PLW2901
 
-            # Update LR
+            # Unfreeze the backbone at the warm-up boundary; the optimizer was
+            # built with all param groups already, so we just need to flip
+            # `requires_grad` back on.
+            if is_backbone_frozen and global_step >= mm_warmup_steps:
+                _unwrap_model(model).unfreeze_all()
+                is_backbone_frozen = False
+                if is_main:
+                    logging.info(f"[mm] step={global_step} encoder warm-up done; unfroze backbone.")
+
+            # Update LR (apply per-group `lr_scale` when present).
+            base_lr = lr_schedule(global_step)
             for pg in optim.param_groups:
-                pg["lr"] = lr_schedule(global_step)
+                pg["lr"] = base_lr * pg.get("lr_scale", 1.0)
 
             # Forward pass
             losses = model(observation, actions)
-            # Ensure losses is a tensor and handle different return types
-            if isinstance(losses, list | tuple):
-                losses = torch.stack(losses)
-            elif not isinstance(losses, torch.Tensor):
-                losses = torch.tensor(losses, device=device, dtype=torch.float32)
 
-            loss = losses.mean()
+            mm_log: dict[str, float | str | int | None] = {}
+            if isinstance(losses, dict):
+                # PI05Multimodal returns a dict; route through the three-phase loss aggregator.
+                loss_dict = _unwrap_model(model).compute_total_loss(losses, global_step=global_step)
+                loss = loss_dict["total"]
+                for key in ("phase", "contrast_warmup", "action_loss", "contrast_loss", "pos_sim", "neg_sim", "acc@1"):
+                    value = loss_dict.get(key)
+                    if isinstance(value, torch.Tensor):
+                        mm_log[key] = float(value.detach().item())
+                    elif value is None or isinstance(value, (str, int, float)):
+                        mm_log[key] = value
+            else:
+                if isinstance(losses, list | tuple):
+                    losses = torch.stack(losses)
+                elif not isinstance(losses, torch.Tensor):
+                    losses = torch.tensor(losses, device=device, dtype=torch.float32)
+                loss = losses.mean()
 
             # Backward pass
             loss.backward()
@@ -557,33 +661,58 @@ def train_loop(config: _config.TrainConfig):
 
             # Collect stats
             if is_main:
-                infos.append(
-                    {
-                        "loss": loss.item(),
-                        "learning_rate": optim.param_groups[0]["lr"],
-                        "grad_norm": float(grad_norm) if isinstance(grad_norm, torch.Tensor) else grad_norm,
-                    }
-                )
+                info = {
+                    "loss": loss.item(),
+                    "learning_rate": optim.param_groups[0]["lr"],
+                    "grad_norm": float(grad_norm) if isinstance(grad_norm, torch.Tensor) else grad_norm,
+                }
+                if mm_log:
+                    info["mm"] = mm_log
+                infos.append(info)
 
             if is_main and (global_step % config.log_interval == 0):
                 elapsed = time.time() - start_time
 
                 # Average stats over log interval
-                avg_loss = sum(info["loss"] for info in infos) / len(infos)
-                avg_lr = sum(info["learning_rate"] for info in infos) / len(infos)
+                avg_loss = sum(item["loss"] for item in infos) / len(infos)
+                avg_lr = sum(item["learning_rate"] for item in infos) / len(infos)
 
                 avg_grad_norm = None
-                if any("grad_norm" in info for info in infos):
+                if any("grad_norm" in item for item in infos):
                     vals = [
-                        info["grad_norm"] for info in infos if "grad_norm" in info and info["grad_norm"] is not None
+                        item["grad_norm"] for item in infos if "grad_norm" in item and item["grad_norm"] is not None
                     ]
                     if len(vals) > 0:
                         avg_grad_norm = sum(vals) / len(vals)
-                logging.info(
-                    f"step={global_step} loss={avg_loss:.4f} lr={avg_lr:.2e} grad_norm={avg_grad_norm:.2f} time={elapsed:.1f}s"
-                    if avg_grad_norm is not None
-                    else f"step={global_step} loss={avg_loss:.4f} lr={avg_lr:.2e} time={elapsed:.1f}s"
-                )
+
+                # Multi-modal log aggregation across the window. We average all
+                # numeric fields and pick the latest phase / contrast_warmup.
+                mm_avg: dict[str, float | str | None] = {}
+                mm_samples = [item.get("mm", {}) for item in infos if item.get("mm")]
+                if mm_samples:
+                    numeric_keys = ("contrast_warmup", "action_loss", "contrast_loss", "pos_sim", "neg_sim", "acc@1")
+                    for key in numeric_keys:
+                        vals = [m[key] for m in mm_samples if isinstance(m.get(key), (int, float))]
+                        if vals:
+                            mm_avg[key] = sum(vals) / len(vals)
+                    last_phase = next((m.get("phase") for m in reversed(mm_samples) if m.get("phase")), None)
+                    if last_phase is not None:
+                        mm_avg["phase"] = last_phase
+
+                summary = f"step={global_step} loss={avg_loss:.4f} lr={avg_lr:.2e}"
+                if avg_grad_norm is not None:
+                    summary += f" grad_norm={avg_grad_norm:.2f}"
+                if mm_avg:
+                    if "phase" in mm_avg:
+                        summary += f" phase={mm_avg['phase']}"
+                    if "action_loss" in mm_avg:
+                        summary += f" L_act={mm_avg['action_loss']:.4f}"
+                    if "contrast_loss" in mm_avg and mm_avg["contrast_loss"] is not None:
+                        summary += f" L_con={mm_avg['contrast_loss']:.4f}"
+                    if "acc@1" in mm_avg and mm_avg["acc@1"] is not None:
+                        summary += f" acc@1={mm_avg['acc@1']:.3f}"
+                summary += f" time={elapsed:.1f}s"
+                logging.info(summary)
 
                 # Log to wandb
                 if config.wandb_enabled and len(infos) > 0:
@@ -595,6 +724,9 @@ def train_loop(config: _config.TrainConfig):
                     }
                     if avg_grad_norm is not None:
                         log_payload["grad_norm"] = avg_grad_norm
+                    for key, value in mm_avg.items():
+                        if isinstance(value, (int, float, str)):
+                            log_payload[f"mm/{key}"] = value
                     wandb.log(log_payload, step=global_step)
 
                 start_time = time.time()

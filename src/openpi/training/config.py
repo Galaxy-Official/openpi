@@ -15,6 +15,7 @@ import tyro
 
 import openpi.models.model as _model
 import openpi.models.pi0_config as pi0_config
+import openpi.models.pi0_config_mm as pi0_config_mm
 import openpi.models.pi0_fast as pi0_fast
 import openpi.models.tokenizer as _tokenizer
 import openpi.policies.aloha_policy as aloha_policy
@@ -104,6 +105,11 @@ class DataConfig:
     multi_task_data_root: str | None = None
     multi_task_weights_json: str | None = None
     multi_task_alpha: float = 0.5
+    # Window sizes plumbed through to `LeRobotMultiModalDataset`. Default to 1
+    # so existing wrist-only training keeps loading scalar force/single tactile
+    # frames; the multi-modal pretraining config overrides them.
+    multi_task_force_window: int = 1
+    multi_task_tactile_frame_stack: int = 1
 
 
 class GroupFactory(Protocol):
@@ -268,6 +274,71 @@ class MultiTaskLeRobotVisionDataConfig(DataConfigFactory):
             multi_task_data_root=self.data_root,
             multi_task_weights_json=self.weights_json,
             multi_task_alpha=self.alpha,
+        )
+
+
+@dataclasses.dataclass(frozen=True)
+class MultiTaskLeRobotMultiModalDataConfig(DataConfigFactory):
+    """Wrist-only multi-task LeRobot config for the touch/force + contrastive pretrain.
+
+    Builds the full multi-modal sample (image + tactile + force + masks + task/frame
+    indices) so `PI05Multimodal` can run its fusion + InfoNCE heads. Vision is
+    constrained to the wrist camera to match the cloud-server data layout.
+    """
+
+    # Stable synthetic repo id used for assets/norm-stats lookup.
+    repo_id: str = "umi_multitask_multimodal"
+    # Caller picks the task set at run time, e.g. `--data.repo-ids task_a task_b`.
+    repo_ids: Sequence[str] = ()
+    data_root: str | None = None
+    weights_json: str | None = "src/openpi/training/multimodal/task_weights.json"
+    alpha: float = 0.5
+    use_full_state: bool = True
+    # Wrist-only by default; flip to False if/when the head camera should come back.
+    wrist_only: bool = True
+
+    # Window sizes for tactile/force streams.
+    force_window: int = 16
+    tactile_frame_stack: int = 1
+
+    # Per-modality dropout (applied per-sample in `MultiModalRepack`).
+    tactile_drop: float = 0.10
+    force_drop: float = 0.10
+    vision_wrist_drop: float = 0.05
+
+    model_transforms: tyro.conf.Suppress[GroupFactory] = dataclasses.field(default_factory=ModelTransformFactory)
+
+    @override
+    def create(self, assets_dirs: pathlib.Path, model_config: _model.BaseModelConfig) -> DataConfig:
+        if not self.repo_ids:
+            raise ValueError(
+                "MultiTaskLeRobotMultiModalDataConfig.repo_ids is empty. "
+                "Pass the task directories for this run, e.g. `--data.repo-ids task_a task_b`."
+            )
+
+        return dataclasses.replace(
+            self.create_base_config(assets_dirs, model_config),
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    multimodal_repack.MultiModalRepack(
+                        use_full_state=self.use_full_state,
+                        wrist_only=self.wrist_only,
+                        tactile_drop=self.tactile_drop,
+                        force_drop=self.force_drop,
+                        vision_wrist_drop=self.vision_wrist_drop,
+                    )
+                ]
+            ),
+            data_transforms=_transforms.Group(),
+            model_transforms=self.model_transforms(model_config),
+            action_sequence_keys=("action",),
+            prompt_from_task=False,
+            multi_task_repo_ids=tuple(self.repo_ids),
+            multi_task_data_root=self.data_root,
+            multi_task_weights_json=self.weights_json,
+            multi_task_alpha=self.alpha,
+            multi_task_force_window=self.force_window,
+            multi_task_tactile_frame_stack=self.tactile_frame_stack,
         )
 
 
@@ -986,6 +1057,42 @@ _CONFIGS = [
         ema_decay=0.999,
         num_train_steps=200_000,
         batch_size=128,
+        log_interval=100,
+        save_interval=5_000,
+        keep_period=25_000,
+        num_workers=4,
+    ),
+    #
+    # UMI multi-task multi-modal pi0.5 pretraining: wrist-only vision + tactile/force fusion
+    # + vision↔touchforce InfoNCE, with the encoder-warmup → action-only → joint schedule
+    # implemented in `PI05Multimodal.compute_total_loss`.
+    #
+    TrainConfig(
+        name="pi05_lerobot_mm_pretrain",
+        model=pi0_config_mm.Pi0ConfigMM(
+            pi05=True,
+            action_dim=32,
+            action_horizon=50,
+            use_tactile=True,
+            use_force=True,
+            use_fusion=True,
+            use_contrast=True,
+            use_vision_latent_contrast=False,
+        ),
+        data=MultiTaskLeRobotMultiModalDataConfig(
+            assets=AssetsConfig(asset_id="umi_multitask_multimodal"),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_base/params"),
+        lr_schedule=_optimizer.CosineDecaySchedule(
+            warmup_steps=1_000,
+            peak_lr=5e-5,
+            decay_steps=200_000,
+            decay_lr=5e-6,
+        ),
+        optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),
+        ema_decay=0.999,
+        num_train_steps=200_000,
+        batch_size=64,
         log_interval=100,
         save_interval=5_000,
         keep_period=25_000,
