@@ -59,7 +59,7 @@ def test_phase_classification_with_warmup_disabled():
     assert pi05_mm.PI05Multimodal.phase_for(_FakeModel(cfg), 100) == "joint"
 
 
-def testcontrast_warmup_factor_is_monotonic_and_clamped():
+def test_contrast_warmup_factor_is_monotonic_and_clamped():
     cfg = _make_config(contrast_warmup_start=1_000, contrast_warmup_end=2_000)
     factor = pi05_mm.PI05Multimodal.contrast_warmup_factor.__get__(_FakeModel(cfg))
     assert factor(0) == 0.0
@@ -70,7 +70,7 @@ def testcontrast_warmup_factor_is_monotonic_and_clamped():
     assert factor(10_000) == 1.0
 
 
-def testcontrast_warmup_factor_handles_zero_span():
+def test_contrast_warmup_factor_handles_zero_span():
     # Degenerate end == start should not divide-by-zero; we just clamp to 1.0 after the boundary.
     cfg = _make_config(contrast_warmup_start=100, contrast_warmup_end=100)
     factor = pi05_mm.PI05Multimodal.contrast_warmup_factor.__get__(_FakeModel(cfg))
@@ -125,11 +125,22 @@ def test_use_contrast_requires_fusion():
 
 
 @pytest.mark.manual
-def test_dummy_forward_and_loss_phases():
-    """Build a dummy-sized PI05Multimodal and exercise all three loss phases.
+def test_dummy_model_compute_loss_and_freeze_cycle():
+    """Build a dummy-sized PI05Multimodal and exercise loss aggregation + freeze.
 
-    Marked `manual` so the routine pytest run on machines without the
-    `transformers_replace` patch does not pay the full backbone build cost.
+    Avoids actually calling `forward(...)` because the upstream `PI0Pytorch`
+    dummy variant has a known config mismatch (hard-coded
+    `vision_config.projection_dim = 2048` vs `text_config.hidden_size = 64`)
+    that makes any real forward fail. The end-to-end forward smoke is what
+    `scripts/debug/dbg_pi05_mm_forward.py` is for; it should be run on the
+    cloud server against a real `gemma_2b` / `gemma_300m` backbone.
+
+    This test instead:
+    - confirms the new modules are constructed when the toggles are on,
+    - feeds synthetic `outputs` into `compute_total_loss` and asserts the
+      three phases produce the expected loss composition + `phase` label,
+    - confirms `freeze_backbone_for_warmup` actually flips trainable
+      parameter counts and that `unfreeze_all` restores them.
     """
     cfg = _make_config(
         encoder_warmup_steps=2,
@@ -140,20 +151,63 @@ def test_dummy_forward_and_loss_phases():
         n_tactile_tokens_per_side=2,
     )
     model = pi05_mm.PI05Multimodal(cfg)
-    obs = _fake_observation(cfg)
-    actions = torch.randn(2, cfg.action_horizon, cfg.action_dim)
 
-    outputs = model(obs, actions)
-    assert "action_loss" in outputs
-    assert outputs["action_loss"].shape == (2, cfg.action_horizon, cfg.action_dim)
+    for name in cfg.encoder_warmup_modules:
+        assert getattr(model, name, None) is not None, f"expected `{name}` to be constructed"
 
-    losses_by_phase = {step: model.compute_total_loss(outputs, step) for step in (0, 3, 5)}
-    assert losses_by_phase[0]["phase"] == "encoder_warmup"
-    assert losses_by_phase[3]["phase"] == "action_only"
-    assert losses_by_phase[5]["phase"] == "joint"
+    batch_size = 4
+    proj_dim = cfg.contrast_proj_dim
+    action_horizon = cfg.action_horizon
+    action_dim = cfg.action_dim
+    outputs = {
+        "action_loss": torch.ones(batch_size, action_horizon, action_dim, requires_grad=True),
+        "z_vision": _normalize(torch.randn(batch_size, proj_dim, requires_grad=True)),
+        "z_touchforce": _normalize(torch.randn(batch_size, proj_dim, requires_grad=True)),
+        "vision_valid": torch.ones(batch_size, dtype=torch.bool),
+        "touchforce_valid": torch.ones(batch_size, dtype=torch.bool),
+        "task_index": torch.tensor([0, 0, 1, 1], dtype=torch.int64),
+        "frame_index": torch.tensor([10, 50, 5, 70], dtype=torch.int64),
+    }
 
-    # Backward only the joint-phase total -- backbone params should be unfrozen by default.
-    losses_by_phase[5]["total"].backward()
+    loss_warmup = model.compute_total_loss(outputs, global_step=0)
+    loss_action = model.compute_total_loss(outputs, global_step=3)
+    loss_joint = model.compute_total_loss(outputs, global_step=cfg.contrast_warmup_end)
+
+    assert loss_warmup["phase"] == "encoder_warmup"
+    assert loss_warmup["contrast_loss"] is not None
+    # During warm-up the action loss is recorded only and detached from the graph.
+    assert not loss_warmup["action_loss"].requires_grad
+    assert loss_warmup["total"].requires_grad
+
+    assert loss_action["phase"] == "action_only"
+    assert loss_action["contrast_loss"] is not None  # logged for visibility
+    assert torch.allclose(loss_action["total"], outputs["action_loss"].mean())
+
+    assert loss_joint["phase"] == "joint"
+    # Joint total should be action_loss + 1.0 * weight * contrast_loss.
+    expected_joint = outputs["action_loss"].mean() + cfg.contrast_weight * loss_joint["contrast_loss"]
+    assert torch.allclose(loss_joint["total"], expected_joint)
+
+    # Freeze / unfreeze cycle.
+    total_param_count = sum(p.numel() for p in model.parameters())
+    model.freeze_backbone_for_warmup()
+    frozen_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    assert frozen_trainable < total_param_count, "freeze did not reduce trainable param count"
+    # The white-listed new modules must remain trainable during warm-up.
+    for name in cfg.encoder_warmup_modules:
+        module = getattr(model, name, None)
+        if module is None:
+            continue
+        assert all(p.requires_grad for p in module.parameters()), (
+            f"`{name}` should keep requires_grad=True during warm-up"
+        )
+
+    model.unfreeze_all()
+    fully_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    assert fully_trainable == total_param_count, "unfreeze_all did not restore full trainability"
+
+    # Smoke: joint backward should not error after unfreezing.
+    loss_joint["total"].backward(retain_graph=True)
 
 
 # ----------------------------------------------------------------- helpers
@@ -166,37 +220,5 @@ class _FakeModel:
         self.mm_config = cfg
 
 
-def _fake_observation(cfg: Pi0ConfigMM):
-    from openpi.models.model import Observation  # noqa: PLC0415
-
-    state = torch.zeros(2, cfg.action_dim)
-    images = {
-        "base_0_rgb": torch.zeros(2, 3, 224, 224),
-        "left_wrist_0_rgb": torch.zeros(2, 3, 224, 224),
-        "right_wrist_0_rgb": torch.zeros(2, 3, 224, 224),
-    }
-    image_masks = {
-        "base_0_rgb": torch.zeros(2, dtype=torch.bool),
-        "left_wrist_0_rgb": torch.ones(2, dtype=torch.bool),
-        "right_wrist_0_rgb": torch.zeros(2, dtype=torch.bool),
-    }
-    tokenized_prompt = torch.zeros(2, cfg.max_token_len, dtype=torch.int32)
-    tokenized_prompt_mask = torch.ones(2, cfg.max_token_len, dtype=torch.bool)
-    tactile = {"left": torch.zeros(2, 224, 224, 3), "right": torch.zeros(2, 224, 224, 3)}
-    tactile_mask = {"left": torch.ones(2, dtype=torch.bool), "right": torch.ones(2, dtype=torch.bool)}
-    force = {"left": torch.zeros(2, cfg.force_window), "right": torch.zeros(2, cfg.force_window)}
-    force_mask = {"left": torch.ones(2, dtype=torch.bool), "right": torch.ones(2, dtype=torch.bool)}
-
-    return Observation(
-        images=images,
-        image_masks=image_masks,
-        state=state,
-        tokenized_prompt=tokenized_prompt,
-        tokenized_prompt_mask=tokenized_prompt_mask,
-        tactile=tactile,
-        tactile_mask=tactile_mask,
-        force=force,
-        force_mask=force_mask,
-        task_index=torch.tensor([0, 0]),
-        frame_index=torch.tensor([10, 50]),
-    )
+def _normalize(t: torch.Tensor) -> torch.Tensor:
+    return torch.nn.functional.normalize(t, dim=-1)
