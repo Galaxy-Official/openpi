@@ -196,7 +196,11 @@ class PI05Multimodal(_pi0_pytorch.PI0Pytorch):
     ) -> tuple[Tensor | None, Tensor | None]:
         if not self._has_contrast:
             return None, None
-        token_dict = dict(zip(_IMAGE_NAMES, image_tokens_list, strict=True))
+        # The PaliGemma backbone runs in bfloat16; the new modules stay in float32 for
+        # numerical stability (LayerNorms in particular). Cast image tokens at the
+        # boundary so VisionProjector's `nn.Linear` doesn't hit a dtype mismatch.
+        proj_dtype = next(self.vision_projector.parameters()).dtype
+        token_dict = dict(zip(_IMAGE_NAMES, [t.to(dtype=proj_dtype) for t in image_tokens_list], strict=True))
         mask_dict = dict(zip(_IMAGE_NAMES, image_masks_list, strict=True))
         z_vision, valid = self.vision_projector(token_dict, image_masks=mask_dict)
         return z_vision, valid
