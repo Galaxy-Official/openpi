@@ -102,6 +102,16 @@ def test_sample_valid_merges_dict_masks():
     assert pi05_mm._sample_valid({}).item() is True  # noqa: SLF001
 
 
+def test_to_siglip_image_range_converts_zero_one_and_preserves_minus_one_one():
+    zero_one = torch.tensor([0.0, 0.5, 1.0])
+    converted = pi05_mm._to_siglip_image_range(zero_one)  # noqa: SLF001
+    assert torch.allclose(converted, torch.tensor([-1.0, 0.0, 1.0]))
+
+    minus_one_one = torch.tensor([-1.0, 0.0, 1.0])
+    preserved = pi05_mm._to_siglip_image_range(minus_one_one)  # noqa: SLF001
+    assert torch.allclose(preserved, minus_one_one)
+
+
 # ---------------------------------------------------------- config validation
 
 

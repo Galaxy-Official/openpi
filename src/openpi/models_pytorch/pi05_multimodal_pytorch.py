@@ -81,7 +81,7 @@ class PI05Multimodal(_pi0_pytorch.PI0Pytorch):
                 # downstream LazyLinear / LayerNorm (kept at float32 for
                 # numerical stability) doesn't hit a dtype mismatch.
                 def _tactile_siglip(image: Tensor) -> Tensor:
-                    return self.paligemma_with_expert.embed_image(image).to(torch.float32)
+                    return self.paligemma_with_expert.embed_image(_to_siglip_image_range(image)).to(torch.float32)
 
                 tactile_embedder = _tactile_siglip
             self.tactile_encoder = TactileEncoder(
@@ -204,7 +204,7 @@ class PI05Multimodal(_pi0_pytorch.PI0Pytorch):
             tactile_mask=tactile_pad,
             force_mask=force_pad,
         )
-        valid = _sample_valid(tactile_mask) & _sample_valid(force_mask)
+        valid = tactile_pad.any(dim=1) & force_pad.any(dim=1)
         return fused_tokens, fused_mask, z_touchforce, valid.to(device=fused_tokens.device)
 
     def _project_vision(
@@ -527,6 +527,13 @@ def _to_tensor(value, device: torch.device) -> Tensor | None:
     if isinstance(value, Tensor):
         return value.to(device=device)
     return torch.as_tensor(value, device=device)
+
+
+def _to_siglip_image_range(image: Tensor) -> Tensor:
+    """Convert `[0, 1]` image tensors to PaliGemma/SigLIP's expected `[-1, 1]` range."""
+    if image.numel() and torch.nan_to_num(image.detach()).min() >= 0.0:
+        return image * 2.0 - 1.0
+    return image
 
 
 _TRUE_SCALAR = torch.tensor(True)  # noqa: FBT003 (module-level singleton, not a flag arg)

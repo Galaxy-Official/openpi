@@ -26,6 +26,14 @@ logger = logging.getLogger("openpi")
 # Type variable for array types (JAX arrays, PyTorch tensors, or numpy arrays)
 ArrayT = TypeVar("ArrayT", bound=jax.Array | torch.Tensor | np.ndarray)
 
+_MM_ALLOWED_MISSING_PREFIXES = (
+    "tactile_encoder",
+    "force_encoder",
+    "touch_force_fusion",
+    "vision_projector",
+    "contrastive_head",
+)
+
 
 class ModelType(enum.Enum):
     """Supported model types."""
@@ -275,7 +283,8 @@ class BaseModelConfig(abc.ABC):
             model = _pi05_mm.PI05Multimodal(config=train_config.model)
             # New encoder/fusion/contrast modules are not present in the
             # pi05_base safetensors, so allow missing keys for them.
-            safetensors.torch.load_model(model, weight_path, strict=False)
+            missing, unexpected = safetensors.torch.load_model(model, weight_path, strict=False)
+            _validate_mm_pytorch_load_result(missing, unexpected, weight_path=weight_path)
         else:
             model = pi0_pytorch.PI0Pytorch(config=train_config.model)
             safetensors.torch.load_model(model, weight_path)
@@ -292,6 +301,36 @@ class BaseModelConfig(abc.ABC):
     def fake_act(self, batch_size: int = 1) -> Actions:
         _, action_spec = self.inputs_spec(batch_size=batch_size)
         return jax.tree.map(lambda x: jnp.ones(x.shape, x.dtype), action_spec)
+
+
+def _validate_mm_pytorch_load_result(missing: list[str], unexpected: list[str], *, weight_path: str) -> None:
+    """Allow missing PI05Multimodal-only keys, but reject checkpoint/config mismatches."""
+    missing = sorted(missing)
+    unexpected = sorted(unexpected)
+    if unexpected:
+        preview = ", ".join(unexpected[:5])
+        raise RuntimeError(
+            f"Found {len(unexpected)} unexpected keys when loading {weight_path}: "
+            f"{preview}{'...' if len(unexpected) > 5 else ''}"
+        )
+    disallowed_missing = [
+        key
+        for key in missing
+        if not any(key == prefix or key.startswith(prefix + ".") for prefix in _MM_ALLOWED_MISSING_PREFIXES)
+    ]
+    if disallowed_missing:
+        preview = ", ".join(disallowed_missing[:5])
+        raise RuntimeError(
+            f"Found {len(disallowed_missing)} missing pretrained-backbone keys when loading {weight_path}: "
+            f"{preview}{'...' if len(disallowed_missing) > 5 else ''}. "
+            "Only the new PI05Multimodal module keys may be missing from a pi05_base warm-start checkpoint."
+        )
+    if missing:
+        preview = ", ".join(missing[:5])
+        logger.info(
+            f"Loaded PI05Multimodal checkpoint with {len(missing)} expected new-module missing keys: "
+            f"{preview}{'...' if len(missing) > 5 else ''}"
+        )
 
 
 @dataclasses.dataclass

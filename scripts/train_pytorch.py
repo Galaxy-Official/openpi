@@ -156,6 +156,49 @@ def _is_multimodal_model(model) -> bool:
     return isinstance(_unwrap_model(model), openpi.models_pytorch.pi05_multimodal_pytorch.PI05Multimodal)
 
 
+_MM_ALLOWED_MISSING_PREFIXES = (
+    "tactile_encoder",
+    "force_encoder",
+    "touch_force_fusion",
+    "vision_projector",
+    "contrastive_head",
+)
+
+
+def _resolve_pytorch_weight_file(weight_path: str) -> str:
+    """Accept either a checkpoint directory or a direct `model.safetensors` path."""
+    if weight_path.endswith(".safetensors"):
+        model_path = weight_path
+    else:
+        model_path = os.path.join(weight_path, "model.safetensors")
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"PyTorch checkpoint not found: {model_path}")
+    return model_path
+
+
+def _validate_mm_load_result(missing: list[str], unexpected: list[str], *, model_path: str) -> None:
+    missing = sorted(missing)
+    unexpected = sorted(unexpected)
+    if unexpected:
+        preview = ", ".join(unexpected[:5])
+        raise RuntimeError(
+            f"Found {len(unexpected)} unexpected keys when loading {model_path}: "
+            f"{preview}{'...' if len(unexpected) > 5 else ''}"
+        )
+    disallowed_missing = [
+        key
+        for key in missing
+        if not any(key == prefix or key.startswith(prefix + ".") for prefix in _MM_ALLOWED_MISSING_PREFIXES)
+    ]
+    if disallowed_missing:
+        preview = ", ".join(disallowed_missing[:5])
+        raise RuntimeError(
+            f"Found {len(disallowed_missing)} missing pretrained-backbone keys when loading {model_path}: "
+            f"{preview}{'...' if len(disallowed_missing) > 5 else ''}. "
+            "Only the new PI05Multimodal module keys may be missing from a pi05_base warm-start checkpoint."
+        )
+
+
 def _split_mm_param_groups(model) -> tuple[list, list]:
     """Return (backbone_params, new_module_params) for a PI05Multimodal model."""
     inner = _unwrap_model(model)
@@ -469,11 +512,19 @@ def train_loop(config: _config.TrainConfig):
             static_graph=world_size >= 8,  # Enable for 8+ GPUs
         )
 
-    # Load weights from weight_loader if specified (for fine-tuning)
+    if _is_multimodal_model(model) and config.pytorch_weight_path is None and not resuming:
+        raise ValueError(
+            "PI05Multimodal PyTorch training requires a pi05_base warm-start safetensors checkpoint. "
+            "Pass `--pytorch-weight-path /path/to/pi05_base_pytorch_dir` (directory containing model.safetensors) "
+            "or `--pytorch-weight-path /path/to/model.safetensors`. "
+            "Resume runs may omit this because they load from the experiment checkpoint."
+        )
+
+    # Load weights from pytorch_weight_path if specified (for fine-tuning / warm-start).
     if config.pytorch_weight_path is not None:
         logging.info(f"Loading weights from: {config.pytorch_weight_path}")
 
-        model_path = os.path.join(config.pytorch_weight_path, "model.safetensors")
+        model_path = _resolve_pytorch_weight_file(config.pytorch_weight_path)
         target_model = _unwrap_model(model)
         # For multi-modal training, the new encoder / fusion / contrastive head
         # parameters are not in the pretrained checkpoint, so use strict=False
@@ -488,6 +539,9 @@ def train_loop(config: _config.TrainConfig):
             if unexpected:
                 preview = ", ".join(unexpected[:5])
                 logging.info(f"  unexpected[:5]: {preview}{'...' if len(unexpected) > 5 else ''}")
+            if _is_multimodal_model(model):
+                _validate_mm_load_result(missing, unexpected, model_path=model_path)
+            elif unexpected:
                 raise RuntimeError(
                     f"Found {len(unexpected)} unexpected keys when loading {model_path}. "
                     "This usually indicates a config / checkpoint mismatch."
