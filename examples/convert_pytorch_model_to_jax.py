@@ -219,9 +219,7 @@ def _convert_vision_params(
             .transpose(0, 1)
             .reshape(config.vision_heads, config.vision_head_dim, config.vision_hidden_size)
         )
-        out_bias.append(
-            reader.take(f"{layer}.self_attn.out_proj.bias").reshape(config.vision_heads, config.vision_head_dim)
-        )
+        out_bias.append(reader.take(f"{layer}.self_attn.out_proj.bias"))
 
     _put(flat, "PaliGemma/img/Transformer/encoderblock/LayerNorm_0/scale", torch.stack(layernorm0_scale), dtype)
     _put(flat, "PaliGemma/img/Transformer/encoderblock/LayerNorm_0/bias", torch.stack(layernorm0_bias), dtype)
