@@ -82,6 +82,14 @@ class _StateReader:
         self.consumed.add(key)
         return self._state_dict[key]
 
+    def take_first(self, keys: list[str]) -> torch.Tensor:
+        for key in keys:
+            if key in self._state_dict:
+                self.consumed.add(key)
+                return self._state_dict[key]
+        preview = "\n".join(k for k in self._state_dict if "embed" in k or "lm_head" in k)
+        raise KeyError(f"Missing all PyTorch key aliases: {keys}\nEmbedding/head keys available:\n{preview}")
+
 
 def _put(flat: dict[str, jax.Array], key: str, value: torch.Tensor, dtype: jnp.dtype):
     flat[key] = _as_jax_array(value.contiguous(), dtype)
@@ -303,7 +311,19 @@ def _convert_paligemma_text_params(
     config = _PaliGemmaShapeConfig(model_config)
     text_prefix = f"{_PALIGEMMA_PREFIX}.language_model"
 
-    _put(flat, "PaliGemma/llm/embedder/input_embedding", reader.take(f"{text_prefix}.embed_tokens.weight"), dtype)
+    _put(
+        flat,
+        "PaliGemma/llm/embedder/input_embedding",
+        reader.take_first(
+            [
+                f"{text_prefix}.embed_tokens.weight",
+                "paligemma_with_expert.paligemma.lm_head.weight",
+                "paligemma_with_expert.paligemma.language_model.embed_tokens.weight",
+                "paligemma_with_expert.paligemma.model.language_model.model.embed_tokens.weight",
+            ]
+        ),
+        dtype,
+    )
 
     attn_vec = []
     kv = []
