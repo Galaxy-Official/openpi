@@ -65,6 +65,11 @@ class MultiModalDatasetSpec:
     # in the contrastive head useless across tasks. When set, samples carry an
     # extra `mm_task_index` field that the model can use as the global task id.
     global_task_index: int | None = None
+    # Optional episode-index half-open filter [episode_start, episode_end).
+    # None means unbounded on that side. When both are None, no filtering is
+    # applied and the dataset exposes every frame exactly as before.
+    episode_start: int | None = None
+    episode_end: int | None = None
 
     @property
     def task_name(self) -> str:
@@ -142,10 +147,21 @@ class LeRobotMultiModalDataset:
         fps = float(self._meta.fps)
 
         delta_timestamps = _build_delta_timestamps(spec, fps)
+        episodes = None
+        if spec.episode_start is not None or spec.episode_end is not None:
+            episodes = _build_episode_selection(
+                episode_start=spec.episode_start,
+                episode_end=spec.episode_end,
+                total_episodes=_total_episodes_from_meta(self._meta),
+            )
+        dataset_kwargs: dict[str, Any] = {}
+        if episodes is not None:
+            dataset_kwargs["episodes"] = episodes
         self._dataset = lerobot_dataset.LeRobotDataset(
             spec.repo_id,
             root=task_root,
             delta_timestamps=delta_timestamps,
+            **dataset_kwargs,
         )
         # Cache the set of feature keys actually declared by this task.
         self._features = set(self._meta.features.keys())
@@ -280,6 +296,57 @@ def _scalar_int(value: Any, default: int = 0) -> int:
     if arr.size == 0:
         return default
     return int(arr.reshape(-1)[0])
+
+
+def _build_episode_selection(
+    *,
+    episode_start: int | None,
+    episode_end: int | None,
+    total_episodes: int,
+) -> list[int] | None:
+    """Build a half-open episode selection for LeRobotDataset."""
+    _validate_episode_bounds(episode_start, episode_end)
+    if episode_start is None and episode_end is None:
+        return None
+    if total_episodes <= 0:
+        raise ValueError(f"Cannot apply episode filter: total_episodes={total_episodes}.")
+
+    start = 0 if episode_start is None else episode_start
+    end = total_episodes if episode_end is None else episode_end
+    if start >= total_episodes:
+        raise ValueError(
+            f"episode_start={start} is outside dataset with total_episodes={total_episodes}."
+        )
+    if end > total_episodes:
+        raise ValueError(f"episode_end={end} exceeds dataset total_episodes={total_episodes}.")
+    return list(range(start, end))
+
+
+def _validate_episode_bounds(episode_start: int | None, episode_end: int | None) -> None:
+    if episode_start is not None and episode_start < 0:
+        raise ValueError(f"episode_start must be non-negative, got {episode_start}.")
+    if episode_end is not None and episode_end < 0:
+        raise ValueError(f"episode_end must be non-negative, got {episode_end}.")
+    if episode_start is not None and episode_end is not None and episode_end <= episode_start:
+        raise ValueError(
+            "episode_end must be greater than episode_start for the half-open range "
+            f"[episode_start, episode_end), got {episode_start}, {episode_end}."
+        )
+
+
+def _total_episodes_from_meta(meta: Any) -> int:
+    total_episodes = getattr(meta, "total_episodes", None)
+    if total_episodes is not None:
+        return int(total_episodes)
+
+    episodes = getattr(meta, "episodes", None)
+    if episodes is not None:
+        try:
+            return int(len(episodes))
+        except TypeError:
+            pass
+
+    raise AttributeError("Cannot apply episode filter: LeRobot metadata does not expose total_episodes.")
 
 
 def _build_task_index_map(tasks: Any) -> dict[int, str]:

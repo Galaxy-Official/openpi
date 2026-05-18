@@ -20,6 +20,15 @@ def _shape(x) -> str:
 def _print_sampler_preview(config: _config.TrainConfig, sample_indices: int) -> None:
     data_config = config.data.create(config.assets_dirs, config.model)
     raw = _data.create_torch_dataset(data_config, config.model.action_horizon, config.model)
+    if hasattr(raw, "task_names") and hasattr(raw, "task_frame_counts"):
+        episode_range = (
+            data_config.multi_task_episode_start,
+            data_config.multi_task_episode_end,
+        )
+        print(f"Frame counts after episode filter {episode_range}:")
+        for name, count in zip(raw.task_names, raw.task_frame_counts, strict=True):
+            print(f"  {name}: {count}")
+
     sampler = _data.create_multitask_weighted_sampler(raw, data_config, seed=config.seed)
     if sampler is None or not hasattr(raw, "task_index_for"):
         return
@@ -42,6 +51,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument("--data-root", type=str, default=None)
     parser.add_argument("--weights-json", type=str, default="src/openpi/training/multimodal/task_weights.json")
     parser.add_argument("--alpha", type=float, default=0.5)
+    parser.add_argument("--episode-start", type=int, default=None)
+    parser.add_argument("--episode-end", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--num-batches", type=int, default=1)
@@ -56,6 +67,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         data_root=args.data_root,
         weights_json=args.weights_json,
         alpha=args.alpha,
+        episode_start=args.episode_start,
+        episode_end=args.episode_end,
     )
     config = dataclasses.replace(
         base,

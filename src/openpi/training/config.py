@@ -105,6 +105,10 @@ class DataConfig:
     multi_task_data_root: str | None = None
     multi_task_weights_json: str | None = None
     multi_task_alpha: float = 0.5
+    # Optional half-open episode-index filter [start, end) applied per task
+    # before multi-task sampling. Defaults keep the full dataset.
+    multi_task_episode_start: int | None = None
+    multi_task_episode_end: int | None = None
     # Window sizes plumbed through to `LeRobotMultiModalDataset`. Default to 1
     # so existing wrist-only training keeps loading scalar force/single tactile
     # frames; the multi-modal pretraining config overrides them.
@@ -250,6 +254,10 @@ class MultiTaskLeRobotVisionDataConfig(DataConfigFactory):
     data_root: str | None = None
     weights_json: str | None = "src/openpi/training/multimodal/task_weights.json"
     alpha: float = 0.5
+    # Optional half-open episode-index filter [episode_start, episode_end).
+    # Leave unset to train on every episode.
+    episode_start: int | None = None
+    episode_end: int | None = None
     use_full_state: bool = True
     model_transforms: tyro.conf.Suppress[GroupFactory] = dataclasses.field(default_factory=ModelTransformFactory)
 
@@ -274,6 +282,8 @@ class MultiTaskLeRobotVisionDataConfig(DataConfigFactory):
             multi_task_data_root=self.data_root,
             multi_task_weights_json=self.weights_json,
             multi_task_alpha=self.alpha,
+            multi_task_episode_start=self.episode_start,
+            multi_task_episode_end=self.episode_end,
         )
 
 
@@ -293,6 +303,10 @@ class MultiTaskLeRobotMultiModalDataConfig(DataConfigFactory):
     data_root: str | None = None
     weights_json: str | None = "src/openpi/training/multimodal/task_weights.json"
     alpha: float = 0.5
+    # Optional half-open episode-index filter [episode_start, episode_end).
+    # Leave unset to train on every episode.
+    episode_start: int | None = None
+    episode_end: int | None = None
     use_full_state: bool = True
     # Wrist-only by default; flip to False if/when the head camera should come back.
     wrist_only: bool = True
@@ -337,6 +351,8 @@ class MultiTaskLeRobotMultiModalDataConfig(DataConfigFactory):
             multi_task_data_root=self.data_root,
             multi_task_weights_json=self.weights_json,
             multi_task_alpha=self.alpha,
+            multi_task_episode_start=self.episode_start,
+            multi_task_episode_end=self.episode_end,
             multi_task_force_window=self.force_window,
             multi_task_tactile_frame_stack=self.tactile_frame_stack,
         )

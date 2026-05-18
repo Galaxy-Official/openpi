@@ -9,6 +9,7 @@ import numpy as np
 from openpi.training.multimodal.lerobot_mm_dataset import ForceLeftKey
 from openpi.training.multimodal.lerobot_mm_dataset import LeRobotMultiModalDataset
 from openpi.training.multimodal.lerobot_mm_dataset import MultiModalDatasetSpec
+from openpi.training.multimodal.lerobot_mm_dataset import _build_episode_selection  # noqa: SLF001
 from openpi.training.multimodal.lerobot_mm_dataset import _build_task_index_map  # noqa: SLF001
 from openpi.training.multimodal.lerobot_mm_dataset import _prompt_from_raw_or_index  # noqa: SLF001
 from openpi.training.multimodal.lerobot_mm_dataset import _squeeze_scalar_force  # noqa: SLF001
@@ -52,3 +53,17 @@ def test_missing_force_zero_placeholder_uses_temporal_vector_shape():
 
     assert zeros.shape == (16,)
     assert zeros.dtype == np.float32
+
+
+def test_episode_selection_uses_half_open_bounds():
+    episodes = _build_episode_selection(episode_start=50, episode_end=100, total_episodes=213)
+
+    assert episodes[0] == 50
+    assert episodes[-1] == 99
+    assert len(episodes) == 50
+
+
+def test_episode_selection_can_use_open_bounds():
+    assert _build_episode_selection(episode_start=None, episode_end=3, total_episodes=10) == [0, 1, 2]
+    assert _build_episode_selection(episode_start=8, episode_end=None, total_episodes=10) == [8, 9]
+    assert _build_episode_selection(episode_start=None, episode_end=None, total_episodes=10) is None

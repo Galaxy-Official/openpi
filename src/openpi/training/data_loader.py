@@ -175,6 +175,8 @@ def create_multitask_lerobot_dataset(data_config: _config.DataConfig, action_hor
             # the contrastive head's task-aware neg-mask. Without this, every
             # sample would carry the same within-repo task_index (usually 0).
             global_task_index=i,
+            episode_start=data_config.multi_task_episode_start,
+            episode_end=data_config.multi_task_episode_end,
         )
         datasets.append(LeRobotMultiModalDataset(spec))
     return MultiTaskConcatDataset(datasets)
