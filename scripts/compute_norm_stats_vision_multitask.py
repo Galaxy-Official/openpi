@@ -31,6 +31,8 @@ def _build_loader(
     repo_ids: Sequence[str],
     *,
     data_root: str | None,
+    episode_start: int | None,
+    episode_end: int | None,
     action_horizon: int,
     use_full_state: bool,
     weights_json: str | None,
@@ -50,6 +52,8 @@ def _build_loader(
                 tactile_frame_stack=1,
                 prompt_from_task=True,
                 root=data_root,
+                episode_start=episode_start,
+                episode_end=episode_end,
             )
         )
         for repo_id in repo_ids
@@ -119,6 +123,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-ids", type=str, nargs="+", required=True)
     parser.add_argument("--data-root", type=str, default=None)
+    parser.add_argument("--episode-start", type=int, default=None)
+    parser.add_argument("--episode-end", type=int, default=None)
     parser.add_argument("--weights-json", type=str, default="src/openpi/training/multimodal/task_weights.json")
     parser.add_argument("--alpha", type=float, default=0.5)
     parser.add_argument("--output-dir", type=str, default=str(DEFAULT_OUTPUT_DIR))
@@ -137,6 +143,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     loader, total_frames = _build_loader(
         args.repo_ids,
         data_root=args.data_root,
+        episode_start=args.episode_start,
+        episode_end=args.episode_end,
         action_horizon=args.action_horizon,
         use_full_state=args.use_full_state,
         weights_json=args.weights_json,
