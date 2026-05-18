@@ -133,3 +133,21 @@ def test_repack_propagates_mm_task_index_when_present():
     out = MultiModalRepack()(sample)
     assert "mm_task_index" in out
     assert int(out["mm_task_index"]) == 3
+
+
+def test_repack_normalizes_chw_float_to_hwc_uint8():
+    # LeRobot v0.4.x returns CHW float32 from video readers. MultiModalRepack
+    # must coerce to HWC uint8 at the boundary so the downstream openpi
+    # `ResizeImages` (which assumes HWC) works on multi-modal batches.
+    sample = _fake_sample()
+    sample["observation.images.phone"] = np.full((3, 480, 640), 0.5, dtype=np.float32)
+    sample["observation.images.wrist"] = np.full((3, 480, 640), 0.25, dtype=np.float32)
+    out = MultiModalRepack()(sample)
+    assert out["image"]["base_0_rgb"].shape == (480, 640, 3)
+    assert out["image"]["base_0_rgb"].dtype == np.uint8
+    # 0.5 * 255 ~ 127
+    assert 125 <= int(out["image"]["base_0_rgb"][0, 0, 0]) <= 130
+    assert out["image"]["left_wrist_0_rgb"].shape == (480, 640, 3)
+    # Right wrist placeholder must share dtype/layout so collation is homogeneous.
+    assert out["image"]["right_wrist_0_rgb"].shape == (480, 640, 3)
+    assert out["image"]["right_wrist_0_rgb"].dtype == np.uint8

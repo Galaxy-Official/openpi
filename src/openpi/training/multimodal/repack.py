@@ -178,13 +178,17 @@ class MultiModalRepack(_transforms.DataTransformFn):
     def _as_image(value) -> np.ndarray | None:
         if value is None:
             return None
-        return np.asarray(value)
+        # The downstream `ResizeImages` (openpi-client `resize_with_pad`) assumes
+        # HWC uint8 inputs. LeRobot v0.4.x returns CHW float32 from video readers,
+        # so we coerce at the boundary -- the same conversion VisionOnlyWristRepack
+        # uses for the wrist-only training path.
+        return _image_to_hwc_uint8(value)
 
     @staticmethod
     def _zero_image_like(template: np.ndarray | None) -> np.ndarray:
         if template is not None:
             return np.zeros_like(template)
-        return np.zeros((3, 224, 224), dtype=np.float32)
+        return np.zeros((224, 224, 3), dtype=np.uint8)
 
     def _rng_from_sample(self, data) -> np.random.Generator:
         # Combine drop_seed with stable per-sample identifiers when available.
