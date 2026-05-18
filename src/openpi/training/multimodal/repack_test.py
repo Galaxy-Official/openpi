@@ -51,7 +51,9 @@ def test_repack_produces_expected_structure():
     assert out["state"].shape == (10,)
     assert out["actions"].shape == (50, 10)
     assert out["prompt"] == "do the thing"
-    assert out["task_name"] == "fake_task"
+    # task_name is intentionally not in the batch (it would crash the
+    # default openpi collator which uses torch.as_tensor on numpy.str_).
+    assert "task_name" not in out
     assert bool(out["image_mask"]["base_0_rgb"]) is True
     assert bool(out["image_mask"]["left_wrist_0_rgb"]) is True
     assert bool(out["image_mask"]["right_wrist_0_rgb"]) is False  # not present in this dataset
@@ -95,9 +97,9 @@ def test_collate_stacks_numeric_and_lists_strings():
     assert batch["image_mask"]["base_0_rgb"].shape == (3,)
     assert batch["tactile"]["left"].shape == (3, 224, 224, 3)
     assert batch["force"]["left"].shape == (3, 16)
-    # String leaves should remain as lists, not numpy arrays.
+    # `prompt` is the only remaining string leaf; it survives MultiModalRepack
+    # because TokenizePrompt (in model_transforms) consumes it later.
     assert isinstance(batch["prompt"], list)
-    assert isinstance(batch["task_name"], list)
     assert len(batch["prompt"]) == 3
 
 

@@ -168,10 +168,15 @@ class MultiModalRepack(_transforms.DataTransformFn):
         for k in ("task_index", "episode_index", "frame_index", "index", "timestamp", "mm_task_index"):
             if k in data:
                 out[k] = np.asarray(data[k])
+        # `prompt` is a string but is consumed (popped) by the downstream
+        # `TokenizePrompt` model transform, so it never reaches the collator.
+        # `task_name` is also a string but no transform pops it -- pass-through
+        # would crash openpi's `_collate_fn` (np.stack -> numpy.str_ ->
+        # torch.as_tensor fails). dbg_dataset.py reads `task_name` straight off
+        # the raw LeRobotMultiModalDataset sample, so we deliberately do not
+        # forward it through the repack output.
         if "prompt" in data:
             out["prompt"] = data["prompt"]
-        if "task_name" in data:
-            out["task_name"] = data["task_name"]
         return out
 
     @staticmethod
