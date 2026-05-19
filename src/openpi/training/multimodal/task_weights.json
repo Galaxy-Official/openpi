@@ -1,42 +1,51 @@
 {
   "alpha": 0.5,
-  "note": "task sampling weights, w_i = frames_i**alpha normalized; frames sourced from LeRobot metadata/debug scan under the data root (see $OPENPI_DATA_ROOT, default ../openpi/Data).",
+  "note": "task sampling weights for the new UMI vision multitask run; weights are proportional to sqrt(episode_count), not frame count, to reduce domination by long-episode tasks. Only the weight field is used by the sampler; frames and episodes are traceability metadata.",
   "tasks": {
-    "yellow_lerobot_428": {
-      "frames": 17161,
-      "weight": 0.07964
+    "427_yellow_to_pink_lerobot_200": {
+      "frames": 17288,
+      "episodes": 200,
+      "weight": 0.086327
     },
-    "429_erase_board_lerobot": {
-      "frames": 31342,
-      "weight": 0.107628
+    "430_clamp_seal_lerobot_200": {
+      "frames": 34630,
+      "episodes": 200,
+      "weight": 0.086327
     },
-    "430_clamp_seal_lerobot": {
-      "frames": 34746,
-      "weight": 0.113322
+    "430_towel_hanging_lerobot_200": {
+      "frames": 33125,
+      "episodes": 200,
+      "weight": 0.086327
     },
-    "430_towel_hanging_lerobot": {
-      "frames": 33310,
-      "weight": 0.110955
+    "501_bread_moving_raw_lerobot_200": {
+      "frames": 20597,
+      "episodes": 200,
+      "weight": 0.086327
     },
-    "501_bread_moving_lerobot": {
-      "frames": 20518,
-      "weight": 0.087082
+    "510_erase_board_350_lerobot": {
+      "frames": 69675,
+      "episodes": 350,
+      "weight": 0.1142
     },
-    "505_screw_lerobot": {
-      "frames": 44155,
-      "weight": 0.127747
+    "512_close_bottle_lerobot_490": {
+      "frames": 141017,
+      "episodes": 490,
+      "weight": 0.135123
     },
-    "506_peg_flowers_lerobot": {
-      "frames": 29591,
-      "weight": 0.104578
+    "512_stiring_lerobot_490": {
+      "frames": 88894,
+      "episodes": 490,
+      "weight": 0.135123
     },
-    "512_close_bottle_lerobot": {
-      "frames": 64019,
-      "weight": 0.153821
+    "513_screw_lerobot_490": {
+      "frames": 95080,
+      "episodes": 490,
+      "weight": 0.135123
     },
-    "512_stiring_lerobot": {
-      "frames": 35924,
-      "weight": 0.115227
+    "stowing_lerobot_490": {
+      "frames": 149674,
+      "episodes": 490,
+      "weight": 0.135123
     }
   }
 }
