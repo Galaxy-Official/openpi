@@ -5,47 +5,47 @@
     "427_yellow_to_pink_lerobot_200": {
       "frames": 17288,
       "episodes": 200,
-      "weight": 0.086327
+      "weight": 0.09693494
     },
     "430_clamp_seal_lerobot_200": {
       "frames": 34630,
       "episodes": 200,
-      "weight": 0.086327
+      "weight": 0.09693494
     },
     "430_towel_hanging_lerobot_200": {
       "frames": 33125,
       "episodes": 200,
-      "weight": 0.086327
+      "weight": 0.09693494
     },
     "501_bread_moving_raw_lerobot_200": {
       "frames": 20597,
       "episodes": 200,
-      "weight": 0.086327
+      "weight": 0.09693494
     },
     "510_erase_board_350_lerobot": {
       "frames": 69675,
       "episodes": 350,
-      "weight": 0.1142
+      "weight": 0.128232872
     },
-    "512_close_bottle_lerobot_490": {
-      "frames": 141017,
-      "episodes": 490,
-      "weight": 0.135123
+    "512_close_bottle_lerobot_350": {
+      "frames": 107731,
+      "episodes": 350,
+      "weight": 0.128232872
     },
-    "512_stiring_lerobot_490": {
-      "frames": 88894,
-      "episodes": 490,
-      "weight": 0.135123
+    "513_screw_lerobot_350": {
+      "frames": 71253,
+      "episodes": 350,
+      "weight": 0.128232872
     },
-    "513_screw_lerobot_490": {
-      "frames": 95080,
-      "episodes": 490,
-      "weight": 0.135123
+    "514_stiring_lerobot_350": {
+      "frames": 64252,
+      "episodes": 350,
+      "weight": 0.128232872
     },
-    "stowing_lerobot_490": {
-      "frames": 149674,
-      "episodes": 490,
-      "weight": 0.135123
+    "516_stowing_lerobot_210": {
+      "frames": 65373,
+      "episodes": 210,
+      "weight": 0.099328755
     }
   }
 }
