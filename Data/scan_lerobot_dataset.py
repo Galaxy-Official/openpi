@@ -144,9 +144,22 @@ def rel_posix(path: Path, root: Path) -> str:
         return path.as_posix()
 
 
-def discover_tasks(root: Path, task_glob: str, recursive: bool) -> List[Path]:
+def discover_tasks(root: Path, task_glob: str, recursive: bool, tasks: Sequence[str] | None = None) -> List[Path]:
     if (root / "meta").exists() or (root / "data").exists() or root.name.endswith("_lerobot"):
         return [root.resolve()]
+
+    if tasks:
+        task_dirs = []
+        missing = []
+        for name in tasks:
+            path = (root / name).resolve()
+            if path.is_dir() and ((path / "meta").exists() or (path / "data").exists()):
+                task_dirs.append(path)
+            else:
+                missing.append(name)
+        if missing:
+            raise FileNotFoundError(f"Task directories not found under {root}: {missing}")
+        return task_dirs
 
     if recursive:
         candidates = [p.parent.parent for p in root.rglob("meta/info.json")]
@@ -994,6 +1007,12 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Scan LeRobot-style task datasets.")
     parser.add_argument("root", type=Path, help="Dataset root containing task folders.")
     parser.add_argument("--out", type=Path, default=Path("dataset_scan_report"), help="Output report directory.")
+    parser.add_argument(
+        "--tasks",
+        nargs="+",
+        default=None,
+        help="Exact task directory names to scan under root. When set, --task-glob and --recursive are ignored.",
+    )
     parser.add_argument("--task-glob", default="*_lerobot", help="Task directory glob for direct children.")
     parser.add_argument("--recursive", action="store_true", help="Find task dirs recursively by meta/info.json.")
     parser.add_argument(
@@ -1026,7 +1045,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     out_dir = args.out.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    task_dirs = discover_tasks(root, args.task_glob, args.recursive)
+    task_dirs = discover_tasks(root, args.task_glob, args.recursive, args.tasks)
     if not task_dirs:
         print(f"No task directories found under {root}", file=sys.stderr)
         return 2
