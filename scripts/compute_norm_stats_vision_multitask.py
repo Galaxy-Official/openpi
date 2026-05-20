@@ -11,6 +11,7 @@ import numpy as np
 import tqdm
 
 import openpi.shared.normalize as normalize
+from openpi import transforms as _transforms
 from openpi.training.multimodal import LeRobotMultiModalDataset
 from openpi.training.multimodal import MultiModalDatasetSpec
 from openpi.training.multimodal import MultiTaskConcatDataset
@@ -40,6 +41,7 @@ def _build_loader(
     batch_size: int,
     num_workers: int,
     seed: int,
+    use_relative_pose_actions: bool,
 ):
     import torch  # noqa: PLC0415
 
@@ -60,6 +62,9 @@ def _build_loader(
     ]
     concat = MultiTaskConcatDataset(datasets)
     transform = VisionOnlyWristRepack(use_full_state=use_full_state)
+    pose_delta = (
+        _transforms.DeltaActions(_transforms.make_bool_mask(6, -4)) if use_relative_pose_actions else None
+    )
 
     class _Wrapped(torch.utils.data.Dataset):
         def __len__(self):
@@ -67,6 +72,8 @@ def _build_loader(
 
         def __getitem__(self, idx):
             out = transform(concat[int(idx)])
+            if pose_delta is not None:
+                out = pose_delta(out)
             return {"state": out["state"], "actions": out["actions"]}
 
     task_weights = None
@@ -134,6 +141,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument("--action-horizon", type=int, default=50)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--use-full-state", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--use-relative-pose-actions", action=argparse.BooleanOptionalAction, default=True)
     args = parser.parse_args(argv)
 
     output_dir = pathlib.Path(args.output_dir).expanduser().resolve()
@@ -152,6 +160,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         seed=args.seed,
+        use_relative_pose_actions=args.use_relative_pose_actions,
     )
     print(f"ConcatDataset frames: {total_frames}; cap: {args.max_frames or 'all'}")
 
