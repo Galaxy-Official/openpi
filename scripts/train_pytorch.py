@@ -382,6 +382,13 @@ def train_loop(config: _config.TrainConfig):
     is_main = (not use_ddp) or (dist.get_rank() == 0)
     set_seed(config.seed, local_rank)
 
+    if config.jax_weight_path is not None:
+        raise ValueError(
+            "scripts/train_pytorch.py is the PyTorch trainer and does not use --jax-weight-path. "
+            "Use --pytorch-weight-path to warm-start from a PyTorch checkpoint, "
+            "or use scripts/train.py for JAX training."
+        )
+
     # Initialize checkpoint directory and wandb
     resuming = False
     if config.resume:

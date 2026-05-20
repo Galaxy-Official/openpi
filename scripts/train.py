@@ -195,6 +195,19 @@ def main(config: _config.TrainConfig):
     init_logging()
     logging.info(f"Running on: {platform.node()}")
 
+    if config.pytorch_weight_path is not None:
+        raise ValueError(
+            "scripts/train.py is the JAX trainer and does not use --pytorch-weight-path. "
+            "Use --jax-weight-path to warm-start from a JAX/Orbax params checkpoint, "
+            "or use scripts/train_pytorch.py for PyTorch training."
+        )
+    if config.jax_weight_path is not None:
+        config = dataclasses.replace(
+            config,
+            weight_loader=_weight_loaders.CheckpointWeightLoader(config.jax_weight_path),
+        )
+        logging.info(f"Using JAX weight path: {config.jax_weight_path}")
+
     if config.batch_size % jax.device_count() != 0:
         raise ValueError(
             f"Batch size {config.batch_size} must be divisible by the number of devices {jax.device_count()}."

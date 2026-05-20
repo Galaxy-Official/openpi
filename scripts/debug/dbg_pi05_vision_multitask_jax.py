@@ -1,0 +1,139 @@
+"""Debug the JAX wrist-camera-only multi-task pi0.5 data path."""
+
+from __future__ import annotations
+
+import argparse
+from collections import Counter
+from collections.abc import Sequence
+import dataclasses
+
+import jax
+import numpy as np
+
+import openpi.training.config as _config
+import openpi.training.data_loader as _data
+import openpi.training.sharding as _sharding
+
+
+def _shape(x) -> str:
+    return f"shape={tuple(x.shape)} dtype={x.dtype}"
+
+
+def _true_count(x) -> tuple[int, int]:
+    arr = np.asarray(x, dtype=bool)
+    return int(arr.sum()), int(arr.size)
+
+
+def _print_sampler_preview(config: _config.TrainConfig, sample_indices: int) -> None:
+    data_config = config.data.create(config.assets_dirs, config.model)
+    raw = _data.create_torch_dataset(data_config, config.model.action_horizon, config.model)
+    if hasattr(raw, "task_names") and hasattr(raw, "task_frame_counts"):
+        episode_range = (
+            data_config.multi_task_episode_start,
+            data_config.multi_task_episode_end,
+        )
+        print(f"Frame counts after episode filter {episode_range}:")
+        for name, count in zip(raw.task_names, raw.task_frame_counts, strict=True):
+            print(f"  {name}: {count}")
+
+    sampler = _data.create_multitask_weighted_sampler(raw, data_config, seed=config.seed)
+    if sampler is None or not hasattr(raw, "task_index_for"):
+        return
+
+    counts: Counter[str] = Counter()
+    for i, idx in enumerate(iter(sampler)):
+        if i >= sample_indices:
+            break
+        task_idx = raw.task_index_for(int(idx))
+        counts[raw.task_names[task_idx]] += 1
+
+    print(f"Sampler preview over {sum(counts.values())} draws:")
+    for name, count in counts.most_common():
+        print(f"  {name}: {count / max(sum(counts.values()), 1):.4f} ({count})")
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo-ids", type=str, nargs="+", required=True)
+    parser.add_argument("--data-root", type=str, default=None)
+    parser.add_argument("--weights-json", type=str, default="src/openpi/training/multimodal/task_weights.json")
+    parser.add_argument("--alpha", type=float, default=0.5)
+    parser.add_argument("--episode-start", type=int, default=None)
+    parser.add_argument("--episode-end", type=int, default=None)
+    parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--num-workers", type=int, default=0)
+    parser.add_argument("--num-batches", type=int, default=1)
+    parser.add_argument("--sample-indices", type=int, default=2048)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--fsdp-devices", type=int, default=1)
+    parser.add_argument("--skip-norm-stats", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--check-forward", action="store_true")
+    args = parser.parse_args(argv)
+
+    base = _config.get_config("pi05_umi_vision_multitask")
+    data = dataclasses.replace(
+        base.data,
+        repo_ids=tuple(args.repo_ids),
+        data_root=args.data_root,
+        weights_json=args.weights_json,
+        alpha=args.alpha,
+        episode_start=args.episode_start,
+        episode_end=args.episode_end,
+    )
+    config = dataclasses.replace(
+        base,
+        data=data,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        num_train_steps=args.num_batches,
+        seed=args.seed,
+        fsdp_devices=args.fsdp_devices,
+        exp_name="debug_pi05_vision_multitask_jax",
+        wandb_enabled=False,
+    )
+
+    _print_sampler_preview(config, args.sample_indices)
+
+    mesh = _sharding.make_mesh(config.fsdp_devices)
+    data_sharding = jax.sharding.NamedSharding(mesh, jax.sharding.PartitionSpec(_sharding.DATA_AXIS))
+    loader = _data.create_data_loader(
+        config,
+        sharding=data_sharding,
+        framework="jax",
+        shuffle=True,
+        num_batches=args.num_batches,
+        skip_norm_stats=args.skip_norm_stats,
+    )
+
+    for batch_idx, (obs, actions) in enumerate(loader):
+        print(f"\n=== batch {batch_idx} ===")
+        print(f"state: {_shape(obs.state)}")
+        print(f"actions: {_shape(actions)}")
+        print(f"tokenized_prompt: {_shape(obs.tokenized_prompt)}")
+        for key, image in obs.images.items():
+            print(f"image.{key}: {_shape(image)}")
+        for key, mask in obs.image_masks.items():
+            true, total = _true_count(mask)
+            print(f"image_mask.{key}: {_shape(mask)} true={true}/{total}")
+
+        if np.asarray(obs.image_masks["base_0_rgb"], dtype=bool).any():
+            raise RuntimeError("base_0_rgb must stay masked out for wrist-only training")
+        if np.asarray(obs.image_masks["right_wrist_0_rgb"], dtype=bool).any():
+            raise RuntimeError("right_wrist_0_rgb must stay masked out for wrist-only training")
+        if not np.asarray(obs.image_masks["left_wrist_0_rgb"], dtype=bool).any():
+            raise RuntimeError("left_wrist_0_rgb has no valid samples in this batch")
+
+        if args.check_forward and batch_idx == 0:
+            rng, loss_rng = jax.random.split(jax.random.key(args.seed))
+            model = config.model.create(rng)
+            with _sharding.set_mesh(mesh):
+                loss = model.compute_loss(loss_rng, obs, actions, train=True)
+            loss_host = np.asarray(jax.device_get(loss))
+            print(
+                "forward_loss: "
+                f"shape={loss_host.shape} dtype={loss_host.dtype} mean={float(loss_host.mean()):.6f}"
+            )
+
+
+if __name__ == "__main__":
+    main()

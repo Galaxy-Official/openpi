@@ -615,6 +615,10 @@ class TrainConfig:
     # Optional path to a PyTorch checkpoint to load weights from.
     pytorch_weight_path: str | None = None
 
+    # Optional path to a JAX/Orbax params checkpoint to warm-start JAX training from.
+    # If set, scripts/train.py overrides `weight_loader` with this local or remote params path.
+    jax_weight_path: str | None = None
+
     # Precision for PyTorch training.
     pytorch_training_precision: Literal["bfloat16", "float32"] = "bfloat16"
 
