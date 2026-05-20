@@ -260,10 +260,17 @@ class MultiTaskLeRobotVisionDataConfig(DataConfigFactory):
     episode_end: int | None = None
     use_full_state: bool = True
     # UMI deployment consumes relative end-effector pose actions. The LeRobot
-    # datasets store absolute future pose targets, so convert the first 6 pose
-    # dimensions to action - current_state for training and keep policy outputs
-    # in that relative action space.
+    # datasets store absolute future pose targets, so convert xyz+rotvec into
+    # the current-EE frame for training and keep policy outputs in that relative
+    # action space.
     use_relative_pose_actions: bool = True
+    # When actions are current-EE-frame deltas, absolute pose state is not needed
+    # at deployment time. Zeroing it here keeps train/deploy state distributions
+    # aligned while preserving non-pose state dims such as gripper.
+    zero_state_pose: bool = True
+    # Keep False for UMI. Set True only for downstream controllers that expect
+    # absolute pose outputs.
+    output_absolute_pose_actions: bool = False
     model_transforms: tyro.conf.Suppress[GroupFactory] = dataclasses.field(default_factory=ModelTransformFactory)
 
     @override
@@ -276,8 +283,12 @@ class MultiTaskLeRobotVisionDataConfig(DataConfigFactory):
 
         data_transforms = _transforms.Group()
         if self.use_relative_pose_actions:
-            pose_delta_mask = _transforms.make_bool_mask(6, -4)
-            data_transforms = data_transforms.push(inputs=[_transforms.DeltaActions(pose_delta_mask)])
+            data_transforms = data_transforms.push(
+                inputs=[_transforms.RelativePoseActions()],
+                outputs=[_transforms.AbsolutePoseActions()] if self.output_absolute_pose_actions else [],
+            )
+            if self.zero_state_pose:
+                data_transforms = data_transforms.push(inputs=[_transforms.ZeroStatePose()])
 
         return dataclasses.replace(
             self.create_base_config(assets_dirs, model_config),
@@ -318,6 +329,9 @@ class MultiTaskLeRobotMultiModalDataConfig(DataConfigFactory):
     episode_start: int | None = None
     episode_end: int | None = None
     use_full_state: bool = True
+    use_relative_pose_actions: bool = True
+    zero_state_pose: bool = True
+    output_absolute_pose_actions: bool = False
     # Wrist-only by default; flip to False if/when the head camera should come back.
     wrist_only: bool = True
 
@@ -340,6 +354,15 @@ class MultiTaskLeRobotMultiModalDataConfig(DataConfigFactory):
                 "Pass the task directories for this run, e.g. `--data.repo-ids task_a task_b`."
             )
 
+        data_transforms = _transforms.Group()
+        if self.use_relative_pose_actions:
+            data_transforms = data_transforms.push(
+                inputs=[_transforms.RelativePoseActions()],
+                outputs=[_transforms.AbsolutePoseActions()] if self.output_absolute_pose_actions else [],
+            )
+            if self.zero_state_pose:
+                data_transforms = data_transforms.push(inputs=[_transforms.ZeroStatePose()])
+
         return dataclasses.replace(
             self.create_base_config(assets_dirs, model_config),
             repack_transforms=_transforms.Group(
@@ -353,7 +376,7 @@ class MultiTaskLeRobotMultiModalDataConfig(DataConfigFactory):
                     )
                 ]
             ),
-            data_transforms=_transforms.Group(),
+            data_transforms=data_transforms,
             model_transforms=self.model_transforms(model_config),
             action_sequence_keys=("action",),
             prompt_from_task=False,

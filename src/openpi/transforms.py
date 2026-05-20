@@ -245,6 +245,189 @@ class AbsoluteActions(DataTransformFn):
 
 
 @dataclasses.dataclass(frozen=True)
+class RelativePoseActions(DataTransformFn):
+    """Convert absolute xyz+rotvec pose actions into current-EE-frame deltas.
+
+    The first six action/state dimensions are interpreted as position plus
+    rotation vector. The resulting action pose is `T_state^-1 * T_action`, also
+    encoded as xyz+rotvec. Remaining action dimensions, such as gripper and
+    padding, are left unchanged.
+    """
+
+    pose_dim: int = 6
+
+    def __call__(self, data: DataDict) -> DataDict:
+        if "actions" not in data:
+            return data
+
+        actions = np.asarray(data["actions"], dtype=np.float32).copy()
+        state = np.asarray(data["state"], dtype=np.float32)
+        if state.shape[-1] < self.pose_dim or actions.shape[-1] < self.pose_dim:
+            raise ValueError(
+                f"RelativePoseActions requires at least {self.pose_dim} state/action dims, "
+                f"got state={state.shape}, actions={actions.shape}"
+            )
+
+        actions[..., : self.pose_dim] = absolute_pose_to_relative(
+            state[..., : self.pose_dim],
+            actions[..., : self.pose_dim],
+        )
+        data["actions"] = actions
+        return data
+
+
+@dataclasses.dataclass(frozen=True)
+class AbsolutePoseActions(DataTransformFn):
+    """Convert current-EE-frame xyz+rotvec deltas back into absolute poses."""
+
+    pose_dim: int = 6
+
+    def __call__(self, data: DataDict) -> DataDict:
+        if "actions" not in data:
+            return data
+
+        actions = np.asarray(data["actions"], dtype=np.float32).copy()
+        state = np.asarray(data["state"], dtype=np.float32)
+        if state.shape[-1] < self.pose_dim or actions.shape[-1] < self.pose_dim:
+            raise ValueError(
+                f"AbsolutePoseActions requires at least {self.pose_dim} state/action dims, "
+                f"got state={state.shape}, actions={actions.shape}"
+            )
+
+        actions[..., : self.pose_dim] = relative_pose_to_absolute(
+            state[..., : self.pose_dim],
+            actions[..., : self.pose_dim],
+        )
+        data["actions"] = actions
+        return data
+
+
+@dataclasses.dataclass(frozen=True)
+class ZeroStatePose(DataTransformFn):
+    """Zero the pose part of state while preserving non-pose state dimensions."""
+
+    pose_dim: int = 6
+
+    def __call__(self, data: DataDict) -> DataDict:
+        if "state" not in data:
+            return data
+
+        state = np.asarray(data["state"], dtype=np.float32).copy()
+        if state.shape[-1] < self.pose_dim:
+            raise ValueError(f"ZeroStatePose requires at least {self.pose_dim} state dims, got {state.shape}")
+        state[..., : self.pose_dim] = 0.0
+        data["state"] = state
+        return data
+
+
+def absolute_pose_to_relative(state_pose: np.ndarray, action_pose: np.ndarray) -> np.ndarray:
+    """Return `T_state^-1 * T_action` for xyz+rotvec pose arrays."""
+
+    state_pose = np.asarray(state_pose, dtype=np.float64)
+    action_pose = np.asarray(action_pose, dtype=np.float64)
+    state_pos, state_rotvec = state_pose[..., :3], state_pose[..., 3:6]
+    action_pos, action_rotvec = action_pose[..., :3], action_pose[..., 3:6]
+
+    state_rot = _rotvec_to_matrix(state_rotvec)
+    action_rot = _rotvec_to_matrix(action_rotvec)
+    for _ in range(action_pose.ndim - state_pose.ndim):
+        state_pos = np.expand_dims(state_pos, axis=-2)
+        state_rot = np.expand_dims(state_rot, axis=-3)
+
+    state_rot_inv = np.swapaxes(state_rot, -1, -2)
+    rel_pos = np.einsum("...ij,...j->...i", state_rot_inv, action_pos - state_pos)
+    rel_rot = np.matmul(state_rot_inv, action_rot)
+    rel_rotvec = _matrix_to_rotvec(rel_rot)
+    return np.concatenate([rel_pos, rel_rotvec], axis=-1).astype(np.float32)
+
+
+def relative_pose_to_absolute(state_pose: np.ndarray, relative_pose: np.ndarray) -> np.ndarray:
+    """Return `T_state * T_relative` for xyz+rotvec pose arrays."""
+
+    state_pose = np.asarray(state_pose, dtype=np.float64)
+    relative_pose = np.asarray(relative_pose, dtype=np.float64)
+    state_pos, state_rotvec = state_pose[..., :3], state_pose[..., 3:6]
+    rel_pos, rel_rotvec = relative_pose[..., :3], relative_pose[..., 3:6]
+
+    state_rot = _rotvec_to_matrix(state_rotvec)
+    rel_rot = _rotvec_to_matrix(rel_rotvec)
+    for _ in range(relative_pose.ndim - state_pose.ndim):
+        state_pos = np.expand_dims(state_pos, axis=-2)
+        state_rot = np.expand_dims(state_rot, axis=-3)
+
+    abs_pos = state_pos + np.einsum("...ij,...j->...i", state_rot, rel_pos)
+    abs_rot = np.matmul(state_rot, rel_rot)
+    abs_rotvec = _matrix_to_rotvec(abs_rot)
+    return np.concatenate([abs_pos, abs_rotvec], axis=-1).astype(np.float32)
+
+
+def _rotvec_to_matrix(rotvec: np.ndarray) -> np.ndarray:
+    rotvec = np.asarray(rotvec, dtype=np.float64)
+    angle_sq = np.sum(rotvec * rotvec, axis=-1, keepdims=True)
+    angle = np.sqrt(angle_sq)
+    skew = _skew(rotvec)
+    skew_sq = np.matmul(skew, skew)
+    eye = np.eye(3, dtype=np.float64)
+
+    small = angle_sq < 1e-12
+    safe_angle = np.where(small, 1.0, angle)
+    safe_angle_sq = np.where(small, 1.0, angle_sq)
+    sin_over_angle = np.where(
+        small,
+        1.0 - angle_sq / 6.0 + angle_sq * angle_sq / 120.0,
+        np.sin(angle) / safe_angle,
+    )
+    one_minus_cos_over_angle_sq = np.where(
+        small,
+        0.5 - angle_sq / 24.0 + angle_sq * angle_sq / 720.0,
+        (1.0 - np.cos(angle)) / safe_angle_sq,
+    )
+    return eye + sin_over_angle[..., None] * skew + one_minus_cos_over_angle_sq[..., None] * skew_sq
+
+
+def _matrix_to_rotvec(matrix: np.ndarray) -> np.ndarray:
+    quat = _matrix_to_quat_wxyz(matrix)
+    quat = np.where(quat[..., :1] < 0.0, -quat, quat)
+    quat_vec = quat[..., 1:]
+    quat_vec_norm = np.linalg.norm(quat_vec, axis=-1, keepdims=True)
+    angle = 2.0 * np.arctan2(quat_vec_norm, quat[..., :1])
+    safe_norm = np.where(quat_vec_norm < 1e-12, 1.0, quat_vec_norm)
+    scale = np.where(quat_vec_norm < 1e-12, 2.0, angle / safe_norm)
+    return quat_vec * scale
+
+
+def _matrix_to_quat_wxyz(matrix: np.ndarray) -> np.ndarray:
+    matrix = np.asarray(matrix, dtype=np.float64)
+    m00, m01, m02 = matrix[..., 0, 0], matrix[..., 0, 1], matrix[..., 0, 2]
+    m10, m11, m12 = matrix[..., 1, 0], matrix[..., 1, 1], matrix[..., 1, 2]
+    m20, m21, m22 = matrix[..., 2, 0], matrix[..., 2, 1], matrix[..., 2, 2]
+
+    quat = np.stack(
+        [
+            np.sqrt(np.maximum(0.0, 1.0 + m00 + m11 + m22)) / 2.0,
+            np.copysign(np.sqrt(np.maximum(0.0, 1.0 + m00 - m11 - m22)) / 2.0, m21 - m12),
+            np.copysign(np.sqrt(np.maximum(0.0, 1.0 - m00 + m11 - m22)) / 2.0, m02 - m20),
+            np.copysign(np.sqrt(np.maximum(0.0, 1.0 - m00 - m11 + m22)) / 2.0, m10 - m01),
+        ],
+        axis=-1,
+    )
+    return quat / np.maximum(np.linalg.norm(quat, axis=-1, keepdims=True), 1e-12)
+
+
+def _skew(vector: np.ndarray) -> np.ndarray:
+    x, y, z = np.moveaxis(vector, -1, 0)
+    zeros = np.zeros_like(x)
+    return np.stack(
+        [
+            np.stack([zeros, -z, y], axis=-1),
+            np.stack([z, zeros, -x], axis=-1),
+            np.stack([-y, x, zeros], axis=-1),
+        ],
+        axis=-2,
+    )
+
+
+@dataclasses.dataclass(frozen=True)
 class TokenizePrompt(DataTransformFn):
     tokenizer: _tokenizer.PaligemmaTokenizer
     discrete_state_input: bool = False

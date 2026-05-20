@@ -62,6 +62,48 @@ def test_absolute_actions_noop():
     assert transform(item) is item
 
 
+def test_relative_pose_actions_uses_current_ee_frame():
+    state = np.array([10.0, 20.0, 30.0, 0.0, 0.0, np.pi / 2, 0.5, 0.0, 0.0, 0.0], dtype=np.float32)
+    actions = np.array(
+        [
+            [10.0, 21.0, 30.0, 0.0, 0.0, np.pi / 2, 0.7, 1.0, 2.0, 3.0],
+        ],
+        dtype=np.float32,
+    )
+
+    transformed = _transforms.RelativePoseActions()({"state": state, "actions": actions})
+
+    np.testing.assert_allclose(transformed["actions"][0, :6], [1.0, 0.0, 0.0, 0.0, 0.0, 0.0], atol=1e-5)
+    np.testing.assert_allclose(transformed["actions"][0, 6:], [0.7, 1.0, 2.0, 3.0])
+
+
+def test_relative_absolute_pose_actions_round_trip():
+    state = np.array([0.3, -0.2, 0.8, 0.2, -0.1, 0.4, 0.1, 0.0, 0.0, 0.0], dtype=np.float32)
+    relative = np.array(
+        [
+            [0.1, 0.2, -0.1, 0.05, -0.04, 0.03, 0.4, 0.0, 0.0, 0.0],
+            [-0.2, 0.0, 0.3, -0.02, 0.06, -0.07, 0.6, 1.0, 2.0, 3.0],
+        ],
+        dtype=np.float32,
+    )
+    absolute = relative.copy()
+    absolute[:, :6] = _transforms.relative_pose_to_absolute(state[:6], relative[:, :6])
+
+    rel_out = _transforms.RelativePoseActions()({"state": state.copy(), "actions": absolute.copy()})
+    np.testing.assert_allclose(rel_out["actions"], relative, atol=1e-5)
+
+    abs_out = _transforms.AbsolutePoseActions()({"state": state.copy(), "actions": rel_out["actions"].copy()})
+    np.testing.assert_allclose(abs_out["actions"], absolute, atol=1e-5)
+
+
+def test_zero_state_pose_preserves_non_pose_dims():
+    item = {"state": np.arange(10, dtype=np.float32)}
+    transformed = _transforms.ZeroStatePose()(item)
+
+    np.testing.assert_allclose(transformed["state"][:6], np.zeros(6, dtype=np.float32))
+    np.testing.assert_allclose(transformed["state"][6:], np.array([6, 7, 8, 9], dtype=np.float32))
+
+
 def test_make_bool_mask():
     assert _transforms.make_bool_mask(2, -2, 2) == (True, True, False, False, True, True)
     assert _transforms.make_bool_mask(2, 0, 2) == (True, True, True, True)

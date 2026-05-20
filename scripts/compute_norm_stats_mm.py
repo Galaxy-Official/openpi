@@ -37,6 +37,7 @@ import numpy as np
 import tqdm
 
 import openpi.shared.normalize as normalize
+from openpi import transforms as _transforms
 from openpi.training.multimodal import LeRobotMultiModalDataset
 from openpi.training.multimodal import MultiModalDatasetSpec
 from openpi.training.multimodal import MultiModalRepack
@@ -96,6 +97,8 @@ def _build_loader(
     batch_size: int,
     num_workers: int,
     seed: int,
+    use_relative_pose_actions: bool,
+    zero_state_pose: bool,
 ):
     import torch  # noqa: PLC0415
 
@@ -114,6 +117,8 @@ def _build_loader(
     concat = MultiTaskConcatDataset(views)
 
     repack = MultiModalRepack(use_full_state=use_full_state, drop_seed=seed)
+    pose_delta = _transforms.RelativePoseActions() if use_relative_pose_actions else None
+    zero_pose_state = _transforms.ZeroStatePose() if zero_state_pose else None
 
     class _Wrapped(torch.utils.data.Dataset):
         def __init__(self, base, transform):
@@ -126,6 +131,10 @@ def _build_loader(
         def __getitem__(self, idx):
             raw = self._base[int(idx)]
             out = self._transform(raw)
+            if pose_delta is not None:
+                out = pose_delta(out)
+            if zero_pose_state is not None:
+                out = zero_pose_state(out)
             if "observation.state_phone" in raw:
                 out["state_phone"] = np.asarray(raw["observation.state_phone"], dtype=np.float32)
             return out
@@ -194,6 +203,19 @@ def _fmt(arr) -> str:
     return f"<shape={tuple(arr.shape)} mean={arr.mean():.4f} min={arr.min():.4f} max={arr.max():.4f}>"
 
 
+def _stabilize_constant_dims(stats: normalize.NormStats, eps: float = 1e-6) -> normalize.NormStats:
+    mean = np.asarray(stats.mean, dtype=np.float32)
+    std = np.asarray(stats.std, dtype=np.float32).copy()
+    q01 = np.asarray(stats.q01, dtype=np.float32).copy()
+    q99 = np.asarray(stats.q99, dtype=np.float32).copy()
+    constant = (q99 - q01) <= eps
+    if constant.any():
+        std[constant] = 1.0
+        q01[constant] = mean[constant] - 1.0
+        q99[constant] = mean[constant] + 1.0
+    return normalize.NormStats(mean=mean, std=std, q01=q01, q99=q99)
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-id", type=str, default=None, help="Single task to load.")
@@ -215,6 +237,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         "--alpha", type=float, default=0.5, help="Task sampling exponent (only if --weights-json absent)."
     )
     parser.add_argument("--weights-json", type=str, default=None)
+    parser.add_argument("--use-relative-pose-actions", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--zero-state-pose", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument(
         "--use-full-state",
         action=argparse.BooleanOptionalAction,
@@ -249,6 +273,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         seed=args.seed,
+        use_relative_pose_actions=args.use_relative_pose_actions,
+        zero_state_pose=args.zero_state_pose,
     )
 
     keys = list(_STATE_KEYS_FULL) + list(_FORCE_KEYS)
@@ -264,7 +290,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     norm_stats = {}
     for key, rs in stats.items():
         try:
-            norm_stats[key] = rs.get_statistics()
+            norm_stats[key] = _stabilize_constant_dims(rs.get_statistics())
         except ValueError as exc:
             logging.warning("Skipping %s: %s", key, exc)
     normalize.save(output_dir, norm_stats)

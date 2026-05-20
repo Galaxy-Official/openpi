@@ -42,6 +42,7 @@ def _build_loader(
     num_workers: int,
     seed: int,
     use_relative_pose_actions: bool,
+    zero_state_pose: bool,
 ):
     import torch  # noqa: PLC0415
 
@@ -62,9 +63,8 @@ def _build_loader(
     ]
     concat = MultiTaskConcatDataset(datasets)
     transform = VisionOnlyWristRepack(use_full_state=use_full_state)
-    pose_delta = (
-        _transforms.DeltaActions(_transforms.make_bool_mask(6, -4)) if use_relative_pose_actions else None
-    )
+    pose_delta = _transforms.RelativePoseActions() if use_relative_pose_actions else None
+    zero_pose_state = _transforms.ZeroStatePose() if zero_state_pose else None
 
     class _Wrapped(torch.utils.data.Dataset):
         def __len__(self):
@@ -74,6 +74,8 @@ def _build_loader(
             out = transform(concat[int(idx)])
             if pose_delta is not None:
                 out = pose_delta(out)
+            if zero_pose_state is not None:
+                out = zero_pose_state(out)
             return {"state": out["state"], "actions": out["actions"]}
 
     task_weights = None
@@ -142,6 +144,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--use-full-state", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--use-relative-pose-actions", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--zero-state-pose", action=argparse.BooleanOptionalAction, default=True)
     args = parser.parse_args(argv)
 
     output_dir = pathlib.Path(args.output_dir).expanduser().resolve()
@@ -161,6 +164,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         num_workers=args.num_workers,
         seed=args.seed,
         use_relative_pose_actions=args.use_relative_pose_actions,
+        zero_state_pose=args.zero_state_pose,
     )
     print(f"ConcatDataset frames: {total_frames}; cap: {args.max_frames or 'all'}")
 
